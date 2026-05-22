@@ -1,4 +1,4 @@
-vim.cmd("source ~/.vim/.vimrc")
+vim.cmd("source ~/.vimrc")
 require("andy.core.keymaps")
 require("andy.core.options")
 -- require("andy.core.setup")
