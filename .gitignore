@@ -1,31 +1,27 @@
 # emacs
-emacs/.config/elpa
-emacs/.config/copilot.el
+emacs/.config/emacs/elpa
+emacs/.config/emacs/copilot.el
 *~
 
 
-!emacs/.config
-!emacs/.config/snippets
-!emacs/.config/snippets/
-!emacs/.config/snippets/**
-emacs/.config/snippets/**/*~
-emacs/.config/snippets/*/*~
-!emacs/.config/custom-elisp
-!emacs/.config/custom-elisp/
-!emacs/.config/custom-elisp/**
-emacs/.config/custom-elisp/*~
-emacs/.config/custom-elisp/**/*~
+!emacs/.config/emacs/
+!emacs/.config/emacs/snippets/
+!emacs/.config/emacs/snippets/**
+emacs/.config/emacs/snippets/**/*~
+!emacs/.config/emacs/custom-elisp/
+!emacs/.config/emacs/custom-elisp/**
+emacs/.config/emacs/custom-elisp/*~
+emacs/.config/emacs/custom-elisp/**/*~
 
 
 
 # nvim
-!/nvim/.config
-!/nvim/.config/
-!/nvim/.config/lua
-!/nvim/.config/lua/andy
-!/nvim/.config/lua/andy/core
-!/nvim/.config/lua/andy/plugins
-!/nvim/.config/lua/andy/plugins/*.lua
+!/nvim/.config/nvim/
+!/nvim/.config/nvim/lua/
+!/nvim/.config/nvim/lua/andy/
+!/nvim/.config/nvim/lua/andy/core/
+!/nvim/.config/nvim/lua/andy/plugins/
+!/nvim/.config/nvim/lua/andy/plugins/*.lua
 
 # aerospace window manager
 !/aerospace/.config
@@ -33,10 +29,10 @@ emacs/.config/custom-elisp/**/*~
 
 
 # kitty terminal
-!/kitty/.config
-!/kitty/.config/kitty.conf
+!/kitty/.config/kitty/
+!/kitty/.config/kitty/kitty.conf
 
 # i3 window manager for linux systems
-!i3/.config
-!i3/.config/config
+!i3/.config/i3/
+!i3/.config/i3/config
 

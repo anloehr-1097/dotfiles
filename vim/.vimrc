@@ -1,4 +1,6 @@
 set path+=**
+syntax on
+filetype plugin indent on
 set wildmenu
 set wildignorecase
 
