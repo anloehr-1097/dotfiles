@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: Q&A
+# key: qa
+# --
+*Q:* $1
+*A:* $2
+$0

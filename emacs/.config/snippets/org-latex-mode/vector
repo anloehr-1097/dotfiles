@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: vector
+# key: vect
+# --
+y &= \begin{bmatrix}
+	$1 \\
+	\vdots \\
+    \end{bmatrix}
+$0

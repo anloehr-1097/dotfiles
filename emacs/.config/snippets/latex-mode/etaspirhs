@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: eta_s^pi
+# key: etaspirhs
+# --
+\eta_{s}^{\pi} = \sum_{a \in \mathcal{A}} \int_{\mathcal{S} \times \R}\pi_s(a) b_{(r, \gamma)}^\#(\eta_{s^{\prime}}^{\pi}) d \rho_{(s,a)}(s^{\prime}, r), \quad s \in \mathcal{S}

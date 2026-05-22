@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: dbo application sum
+# key: dbosum
+# --
+
+\sum_{(a,\bar{s}) \in \mathcal{A \times S}} \pi(a \mid s) p(\bar{s} \mid s, a) $0

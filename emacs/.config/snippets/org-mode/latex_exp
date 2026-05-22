@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: insert latex
+# key: latexp
+# --
+
+#+BEGIN_EXPORT latex
+$0
+#+END_EXPORT

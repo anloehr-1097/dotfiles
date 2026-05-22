@@ -1,0 +1,8 @@
+# key: title
+# name: org doc title
+# --
+#+TITLE: $1
+#+AUTHOR: Andreas Loehr
+#+EMAIL: andreas.loehr97@gmail.com
+#+DATE: $2
+$0

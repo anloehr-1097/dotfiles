@@ -1,0 +1,4 @@
+# key: eq
+# name: mathmode
+# --
+\[ $1 \]$0

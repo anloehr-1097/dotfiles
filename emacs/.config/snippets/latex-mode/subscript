@@ -1,0 +1,4 @@
+# key: sub
+# name: subscript
+# --
+_{$1}$0

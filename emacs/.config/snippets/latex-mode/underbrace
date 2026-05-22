@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: underbrace
+# key: underbrace
+# --
+
+\underbrace{$1}_{$2} $0

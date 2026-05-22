@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: prob measures over SxAxS
+# key: probsas
+# --
+\matcal{P}(\mathcal{S} \times \mathcal{A} \times \mathcal{S})
+

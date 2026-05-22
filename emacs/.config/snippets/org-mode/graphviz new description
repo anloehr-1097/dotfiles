@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: graphviz new description 
+# key: gnd
+# --
+[label="$1", shape="${2:box}", style="${3: solid}", color="${4:black}"]

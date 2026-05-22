@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: \text{out} and \text{in}
+# key: inout
+# --
+
+\text{$1}

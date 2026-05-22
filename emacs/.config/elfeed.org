@@ -1,0 +1,57 @@
+* Feeds :elfeed:
+** arXiv 
+*** Computer Science
+**** AI
+***** https://rss.arxiv.org/rss/cs.AI
+**** Machine Learning
+***** https://rss.arxiv.org/rss/stat.ML
+**** Architecture
+***** https://rss.arxiv.org/rss/cs.AR
+**** Computational Engineering
+***** https://rss.arxiv.org/rss/cs.CE
+**** Computation and Language
+***** https://rss.arxiv.org/rss/cs.CL
+**** Computer Vision
+***** https://rss.arxiv.org/rss/cs.CV
+**** Databases
+***** https://rss.arxiv.org/rss/cs.DB
+**** Distributed Computing
+***** https://rss.arxiv.org/rss/cs.DC
+**** Data Structures and Algorithms
+***** https://rss.arxiv.org/rss/cs.DS
+**** Graphics
+***** https://rss.arxiv.org/rss/cs.GR
+**** Game Theory
+***** https://rss.arxiv.org/rss/cs.GT
+**** Information Retrieval
+***** https://rss.arxiv.org/rss/cs.IR
+**** Information Theory
+***** https://rss.arxiv.org/rss/cs.IT
+**** Learning
+***** https://rss.arxiv.org/rss/cs.LG
+**** Multiagent Systems
+***** https://rss.arxiv.org/rss/cs.MA
+**** Neural and Evolutionary Computing
+***** https://rss.arxiv.org/rss/cs.NE
+**** Networking and Internet Architecture
+***** https://rss.arxiv.org/rss/cs.NI
+**** Other Computer Science
+***** https://rss.arxiv.org/rss/cs.OH
+**** Operating Systems
+***** https://rss.arxiv.org/rss/cs.OS
+**** Performance
+***** https://rss.arxiv.org/rss/cs.PF
+**** Programming Languages
+***** https://rss.arxiv.org/rss/cs.PL
+**** Robotics
+***** https://rss.arxiv.org/rss/cs.RO
+**** Software Engineering
+***** https://rss.arxiv.org/rss/cs.SE
+**** Systems and Control
+***** https://rss.arxiv.org/rss/cs.SY
+** Nvidia
+*** Developer Blog
+**** https://developer.nvidia.com/blog/feed
+
+*** Newsblog
+**** https://feeds.feedburner.com/nvidiablog

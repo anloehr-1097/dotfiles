@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: S x A x S
+# key: sas
+# --
+
+\mathcal{S} \times \mathcal{A} \times \mathcal{S}

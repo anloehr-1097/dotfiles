@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: PE
+# key: pe
+# --
+\text{PE}(k, \text{d})$0

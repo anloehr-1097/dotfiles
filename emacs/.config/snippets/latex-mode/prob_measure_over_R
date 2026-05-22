@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: Prob measures over R 
+# key: probr
+# --
+\mathcal{P}(\R)

@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: return random variable collection
+# key: returncollection
+# --
+
+R(\cdot \mid sas^{\prime}), \quad (s, a, s^{\prime}) \in \mathcal{S} \times \mathcal{A} \times \mathcal{S}

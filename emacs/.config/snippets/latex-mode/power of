@@ -1,0 +1,4 @@
+# key: pow
+# name: power of
+# --
+^{$1}$0

@@ -1,0 +1,4 @@
+# key: sup 
+# name: superscript
+# --
+^{$1}$0
