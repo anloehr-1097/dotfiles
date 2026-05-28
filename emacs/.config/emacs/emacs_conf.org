@@ -1517,12 +1517,12 @@ A simple IPython client for emacs porting jupyter notebooks / their functionalit
 #+begin_src emacs-lisp
   (use-package dash
     :ensure t)
-  (use-package s
-    :ensure t)
+  ;; (use-package s
+  ;;  :ensure t)
   (use-package editorconfig
     :ensure t)
 
-  (add-to-list 'load-path "~/.config/emacs/copilot.el")
+  ;; (add-to-list 'load-path "~/.config/emacs/copilot.el")
 
   (use-package copilot
     :ensure t
@@ -1832,7 +1832,7 @@ Dired is a built-in file manager for Emacs that does some pretty amazing things!
       "l" 'dired-single-buffer))
 
   ;;(use-package dired-single
-    ;;:commands (dired dired-jump))
+  ;;:commands (dired dired-jump))
 
   (use-package all-the-icons-dired
     :hook (dired-mode . all-the-icons-dired-mode))
@@ -1845,11 +1845,11 @@ Dired is a built-in file manager for Emacs that does some pretty amazing things!
     (setq dired-open-extensions '(("png" . "feh")
                                   ("mkv" . "mpv"))))
 
-  ;; (use-package dired-hide-dotfiles
-  ;;   :hook (dired-mode . dired-hide-dotfiles-mode)
-  ;;   :config
-  ;;   (evil-collection-define-key 'normal 'dired-mode-map
-  ;;     "H" 'dired-hide-dotfiles-mode))
+  (use-package dired-hide-dotfiles
+    :hook (dired-mode . dired-hide-dotfiles-mode)
+    :config
+    (evil-collection-define-key 'normal 'dired-mode-map
+      "H" 'dired-hide-dotfiles-mode))
 
 #+end_src
 

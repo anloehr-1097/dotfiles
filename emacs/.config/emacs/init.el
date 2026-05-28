@@ -850,9 +850,37 @@
     :ensure t)
 
 
-  (custom-set-variables
-   '(conda-anaconda-home conda-path)
-   )
+  
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(conda-anaconda-home conda-path)
+ '(package-selected-packages
+   '(all-the-icons-dired anki-editor async auto-complete-auctex
+			 auto-package-update citar-embark
+			 citar-org-roam clippy cmake-mode
+			 command-log-mode company-auctex company-box
+			 conda copilot counsel-projectile cuda-mode
+			 dap-mode dashboard dired-hide-dotfiles
+			 dired-open djvu doom-modeline doom-themes ein
+			 elfeed-org elfeed-score embark-consult
+			 eshell-git-prompt eterm-256color
+			 evil-collection evil-nerd-commenter evil-owl
+			 evil-surround flycheck-mypy forge fzf general
+			 google-translate graphviz-dot-mode
+			 haskell-mode hcl-mode helpful ivy-bibtex
+			 ivy-prescient lsp-ivy lsp-ui
+			 magic-latex-buffer marginalia no-littering
+			 nov openwith org-bullets org-contrib
+			 org-latex-impatient org-noter-pdftools
+			 org-ref org-roam-bibtex org-roam-ui ox-hugo
+			 pipenv plantuml-mode python-mode
+			 rainbow-delimiters smart-comment
+			 terraform-mode undo-tree vc-use-package
+			 vertico visual-fill-column vterm wgrep))
+ '(pdf-tools-handle-upgrades t))
 
 (use-package cuda-mode
   :ensure t)
@@ -1034,12 +1062,12 @@
 
 (use-package dash
   :ensure t)
-(use-package s
-  :ensure t)
+;; (use-package s
+;;  :ensure t)
 (use-package editorconfig
   :ensure t)
 
-(add-to-list 'load-path "~/.config/emacs/copilot.el")
+;; (add-to-list 'load-path "~/.config/emacs/copilot.el")
 
 (use-package copilot
   :ensure t
@@ -1509,3 +1537,9 @@
   (setq openwith-associations
       '(("\\.pdf\\'" "sioyek" (file))))
   )
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )

@@ -15,7 +15,7 @@ clean.sh
 
 # vim
 vim/.vim/undodir
-
+vim/.vim/.netrwhist
 
 # kitty
 kitty/.config/kitty/cyberdream.conf
