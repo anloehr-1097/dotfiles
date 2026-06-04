@@ -167,3 +167,6 @@ else
     fi
 fi
 
+source /home/andy/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /home/andy/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+source /home/andy/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh

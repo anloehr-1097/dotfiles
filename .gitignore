@@ -25,3 +25,9 @@ kitty/.config/kitty/cyberdream.conf
 espanso/.config/espanso/config
 
 
+
+# zsh
+zsh/.gitignore
+zsh/.zsh/zsh-autocomplete/
+zsh/.zsh/zsh-autosuggestions/
+zsh/.zsh/zsh-syntax-highlighting/
