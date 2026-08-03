@@ -95,7 +95,7 @@ stow_all() {
             continue
         fi
         info "Stowing $pkg..."
-        stow --adopt --target="$HOME" "$pkg" || {
+        stow --target="$HOME" "$pkg" || {
             err "Failed to stow $pkg (conflict?). Inspect and re-run."
             stow --target="$HOME" --verbose "$pkg" || true
         }
