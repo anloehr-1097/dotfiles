@@ -7,7 +7,7 @@ return {
 				lua = { "stylua" },
 				json = { "jq" },
 				python = { "ruff" },
-				cpp = { "clang-format", "cpplint" },
+				cpp = { "clang-format" },
 			},
 		})
 		vim.api.nvim_create_autocmd("BufWritePre", {

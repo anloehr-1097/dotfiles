@@ -1543,6 +1543,14 @@ A simple IPython client for emacs porting jupyter notebooks / their functionalit
       :ensure t)
 #+end_src
 
+** Impatient Mode
+#+begin_src emacs-lisp
+  (use-package impatient-mode
+    :ensure t
+    )
+
+#+end_src
+
 * Latex
 ** General config for latex
 
@@ -2156,7 +2164,7 @@ Dial the GC threshold back down so that garbage collection happens more frequent
      "apn" 'anki-editor-push-note-at-point
      "apa" ' anki-editor-push-new-notes)
 #+end_src
-*  Emacs Server - Daemon setup
+* Emacs Server - Daemon setup
 
 
 #+begin_src emacs-lisp

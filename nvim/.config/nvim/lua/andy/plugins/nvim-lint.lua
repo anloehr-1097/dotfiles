@@ -7,7 +7,7 @@ return {
 		require("lint").linters_by_ft = {
 			sh = { "shellcheck" },
 			python = { "ruff", "mypy" },
-			cpp = { "cpplint" },
+            -- cpp = { "cpplint" },
 			cmake = { "cmakelint" },
 		}
 		vim.api.nvim_create_autocmd({ "BufWritePost" }, {

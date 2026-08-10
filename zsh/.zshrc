@@ -138,6 +138,7 @@ fi
 
 set -o vi
 export EDITOR=nvim
+export DOTFILES_DIR="https://github.com/anloehr-1097/dotfiles.git"
 # eval "$(starship init zsh)"
 
 # The next line updates PATH for the Google Cloud SDK.
