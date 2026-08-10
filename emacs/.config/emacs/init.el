@@ -857,6 +857,12 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(conda-anaconda-home conda-path)
+ '(org-agenda-files
+   '("/Users/anlhr/research/distrRL.org" "/Users/anlhr/org/Tasks.org"
+     "/Users/anlhr/org/Habits.org" "/Users/anlhr/org/Schedule.org"
+     "/Users/anlhr/org/Birthdays.org"
+     "/Users/anlhr/research/planning.org"
+     "/Users/anlhr/GlobalSync/inbox.org"))
  '(package-selected-packages
    '(all-the-icons-dired anki-editor async auto-complete-auctex
 			 auto-package-update citar-embark
@@ -871,17 +877,19 @@
 			 evil-surround flycheck-mypy forge fzf general
 			 google-translate graphviz-dot-mode
 			 haskell-mode helpful impatient-mode
-			 ivy-bibtex ivy-prescient lsp-ivy lsp-ui
-			 magic-latex-buffer marginalia no-littering
-			 nov openwith org-bullets org-contrib
-			 org-latex-impatient org-noter-pdftools
-			 org-ref org-roam-bibtex org-roam-ui ox-hugo
-			 pipenv plantuml-mode python-mode
-			 rainbow-delimiters smart-comment
+			 ivy-bibtex ivy-prescient latex-preview-pane
+			 lsp-ivy lsp-ui magic-latex-buffer marginalia
+			 no-littering nov openwith org-bullets
+			 org-contrib org-latex-impatient
+			 org-noter-pdftools org-ref org-roam-bibtex
+			 org-roam-ui ox-hugo pipenv plantuml-mode
+			 python-mode rainbow-delimiters smart-comment
 			 terraform-mode undo-tree vc-use-package
-			 vertico visual-fill-column vterm wgrep))
+			 vertico visual-fill-column vterm wgrep
+			 whisper))
  '(package-vc-selected-packages
-   '((anki-editor :vc-backend Git :url
+   '((whisper :vc-backend Git :url "https://github.com/natrys/whisper.el")
+     (anki-editor :vc-backend Git :url
 		  "https://github.com/anki-editor/anki-editor")
      (vc-use-package :vc-backend Git :url
 		     "https://github.com/slotThe/vc-use-package")))
