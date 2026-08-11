@@ -23,6 +23,8 @@ STOW_TARGETS=(
     zsh
 )
 
+INSTALL_TARGETS="stow tmux"
+
 info() { printf "\033[1;34m==>\033[0m %s\n" "$*"; }
 err()  { printf "\033[1;31mError:\033[0m %s\n" "$*" >&2; }
 
@@ -44,11 +46,11 @@ install_stow() {
                 case "${ID:-}:${ID_LIKE:-}" in
                     ubuntu:*|*ubuntu*|debian:*|*debian*)
                         info "Installing stow via apt..."
-                        sudo apt update && sudo apt install -y stow
+                        sudo apt update && sudo apt install -y ${INSTALL_TARGETS}
                         ;;
                     arch:*)
                         info "Installing stow via pacman..."
-                        sudo pacman -Sy --noconfirm stow
+                        sudo pacman -Sy --noconfirm $INSTALL_TARGETS
                         ;;
                     *)
                         err "Unsupported Linux distribution: ${ID:-unknown}"
@@ -69,7 +71,7 @@ install_stow() {
                 exit 1
             fi
             info "Installing stow via Homebrew..."
-            brew install stow
+            brew install ${INSTALL_TARGETS}
             ;;
         *)
             err "Unsupported OS: $os"
@@ -79,6 +81,11 @@ install_stow() {
 
     if ! command -v stow >/dev/null 2>&1; then
         err "GNU Stow installation failed."
+        exit 1
+    fi
+
+    if ! command -v tmux >/dev/null 2>&1; then
+        err "tmux installation failed."
         exit 1
     fi
 }
