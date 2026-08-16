@@ -75,6 +75,15 @@
 ;; reliably, set `user-emacs-directory` before loading no-littering!
 ;(setq user-emacs-directory "~/.cache/emacs")
 
+;; Recent no-littering versions assume Emacs >= 30.0.90 defines
+;; `treesit-auto-install-grammar', but this variable only landed on
+;; Emacs's development branch and is absent from this Emacs 30.2
+;; build, causing a void-variable error when no-littering's
+;; `eval-after-load' for `treesit' fires. Defining it defensively
+;; avoids the error until Emacs or no-littering catches up.
+(unless (boundp 'treesit-auto-install-grammar)
+  (defvar treesit-auto-install-grammar nil))
+
 (use-package no-littering)
 
 ;; no-littering doesn't set this by default so we must place
@@ -1216,7 +1225,7 @@
     "l" 'dired-single-buffer))
 
 ;;(use-package dired-single
-  ;;:commands (dired dired-jump))
+;;:commands (dired dired-jump))
 
 (use-package all-the-icons-dired
   :hook (dired-mode . all-the-icons-dired-mode))
@@ -1229,11 +1238,11 @@
   (setq dired-open-extensions '(("png" . "feh")
                                 ("mkv" . "mpv"))))
 
-;; (use-package dired-hide-dotfiles
-;;   :hook (dired-mode . dired-hide-dotfiles-mode)
-;;   :config
-;;   (evil-collection-define-key 'normal 'dired-mode-map
-;;     "H" 'dired-hide-dotfiles-mode))
+(use-package dired-hide-dotfiles
+  :hook (dired-mode . dired-hide-dotfiles-mode)
+  :config
+  (evil-collection-define-key 'normal 'dired-mode-map
+    "H" 'dired-hide-dotfiles-mode))
 
 (global-auto-revert-mode 1)
 
@@ -1550,9 +1559,3 @@
   (setq openwith-associations
       '(("\\.pdf\\'" "sioyek" (file))))
   )
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
