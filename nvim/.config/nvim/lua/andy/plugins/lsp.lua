@@ -33,10 +33,15 @@ return {
 		vim.opt.completeopt = { "menu", "menuone", "noselect" }
 
 		local capabilities = require("cmp_nvim_lsp").default_capabilities()
-       
+
         capabilities = vim.tbl_deep_extend('force', capabilities, {
             general = {
                 positionEncodings = { 'utf-16' },  -- Enforce utf-16 for consistency
+            },
+            textDocument = {
+                semanticTokens = {
+                    multilineTokenSupport = true,
+                },
             },
         })
 
@@ -53,16 +58,7 @@ return {
 
 		-- Global lsp settings
 		vim.lsp.config("*", {
-			capabilities = {
-				textDocument = {
-					semanticTokens = {
-						multilineTokenSupport = true,
-					},
-				},
-                general = {
-                    positionEncodings = { 'utf-16' },  -- Enforce utf-16 for consistency
-                },
-			},
+			capabilities = capabilities,
 			root_markers = { ".git" },
 		})
 
@@ -220,6 +216,9 @@ return {
         -- Required: Enable the language server
         vim.lsp.enable('ty')
 
+        -- Rust: handled entirely by rustaceanvim (see rust.lua), which manages
+        -- its own rust_analyzer client. Do not vim.lsp.enable('rust_analyzer')
+        -- here as well or you'll get two LSP clients attached to rust buffers.
 
 		-- Global diagnostics keybindings (from arch)
 		vim.keymap.set("n", "<space>e", vim.diagnostic.open_float)
@@ -227,6 +226,9 @@ return {
 		vim.keymap.set("n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<cr>")
 		vim.keymap.set("n", "]d", "<cmd>lua vim.diagnostic.goto_next()<cr>")
 		vim.keymap.set("n", "<space>q", vim.diagnostic.setloclist)
+		vim.keymap.set("n", "<space>th", function()
+			vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = 0 }), { bufnr = 0 })
+		end, { desc = "Toggle inlay hints" })
 
 		-- Buffer-local LspAttach keybindings (from arch)
 		vim.api.nvim_create_autocmd("LspAttach", {
@@ -235,6 +237,11 @@ return {
 				local opts = { buffer = event.buf }
 
 				vim.bo[event.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
+
+				local client = vim.lsp.get_client_by_id(event.data.client_id)
+				if client and client:supports_method("textDocument/inlayHint") then
+					vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
+				end
 
 				vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
 				vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)

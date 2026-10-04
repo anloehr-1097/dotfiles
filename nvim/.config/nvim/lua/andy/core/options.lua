@@ -53,4 +53,4 @@ opt.laststatus = 3 -- always show status line
 
 -- fold
 opt.foldmethod = "expr"
-opt.foldexpr = "nvim_treesitter#foldexpr()"
+opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
