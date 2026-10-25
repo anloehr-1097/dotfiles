@@ -75,15 +75,6 @@
 ;; reliably, set `user-emacs-directory` before loading no-littering!
 ;(setq user-emacs-directory "~/.cache/emacs")
 
-;; Recent no-littering versions assume Emacs >= 30.0.90 defines
-;; `treesit-auto-install-grammar', but this variable only landed on
-;; Emacs's development branch and is absent from this Emacs 30.2
-;; build, causing a void-variable error when no-littering's
-;; `eval-after-load' for `treesit' fires. Defining it defensively
-;; avoids the error until Emacs or no-littering catches up.
-(unless (boundp 'treesit-auto-install-grammar)
-  (defvar treesit-auto-install-grammar nil))
-
 (use-package no-littering)
 
 ;; no-littering doesn't set this by default so we must place
@@ -131,6 +122,65 @@
 (use-package smart-comment
   :ensure t)
 
+(use-package treesit-auto
+  :custom
+  (treesit-auto-install 'prompt)
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all)
+  (global-treesit-auto-mode))
+
+(add-hook 'prog-mode-hook #'hs-minor-mode)
+
+(use-package treesit-fold
+  :after evil
+  :vc (:url "https://github.com/emacs-tree-sitter/treesit-fold"
+       :rev :newest)
+  :config
+  (global-treesit-fold-mode 1)
+
+  (defun my/treesit-fold--starts ()
+    "Return the sorted start positions of all multi-line foldable nodes."
+    (let* ((root (treesit-buffer-root-node))
+           (patterns (seq-mapcat (lambda (r) `((,(car r)) @name))
+                                 (alist-get major-mode treesit-fold-range-alist)))
+           (query (treesit-query-compile (treesit-node-language root) patterns)))
+      (sort (delete-dups
+             (cl-loop for (_ . node) in (treesit-query-capture root query)
+                      unless (treesit-fold--node-range-on-same-line node)
+                      collect (treesit-node-start node)))
+            #'<)))
+
+  (defun my/fold-next ()
+    "Move to the start of the next fold (like Vim's zj)."
+    (interactive)
+    (cond
+     ((bound-and-true-p treesit-fold-mode)
+      (let ((eol (line-end-position)))
+        (if-let* ((pos (seq-find (lambda (p) (> p eol)) (my/treesit-fold--starts))))
+            (goto-char pos)
+          (user-error "No next fold"))))
+     ((derived-mode-p 'org-mode) (org-next-visible-heading 1))
+     ((bound-and-true-p outline-minor-mode) (outline-next-visible-heading 1))
+     (t (beginning-of-defun -1))))
+
+  (defun my/fold-previous ()
+    "Move to the start of the previous fold (like Vim's zk)."
+    (interactive)
+    (cond
+     ((bound-and-true-p treesit-fold-mode)
+      (let ((bol (line-beginning-position)))
+        (if-let* ((pos (car (last (seq-filter (lambda (p) (< p bol))
+                                              (my/treesit-fold--starts))))))
+            (goto-char pos)
+          (user-error "No previous fold"))))
+     ((derived-mode-p 'org-mode) (org-previous-visible-heading 1))
+     ((bound-and-true-p outline-minor-mode) (outline-previous-visible-heading 1))
+     (t (beginning-of-defun))))
+
+  (evil-define-key '(normal visual motion) 'global
+    (kbd "zj") #'my/fold-next
+    (kbd "zk") #'my/fold-previous))
+
 ;; Make ESC quit prompts
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
@@ -165,7 +215,7 @@
   (efs/leader-keys
     "t"  '(:ignore t :which-key "toggles")
     "tl" '(counsel-load-theme :which-key "choose theme")
-    "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/emacs_conf.org")))))
+    "fde" '(lambda () (interactive) (find-file (expand-file-name "~/dotfiles/emacs/.config/emacs/emacs_conf.org")))))
 
 (use-package evil
   :after counsel
@@ -200,6 +250,7 @@
   (evil-define-key '(normal visual) 'global (kbd "<leader>tp") 'tab-previous)
   (evil-define-key '(normal visual) 'global (kbd "<leader>tx") 'tab-close)
   (evil-define-key '(normal) 'global (kbd "S-RET") 'org-insert-item)
+
 
   ; statusline commands (available as ":<command>")
   (evil-ex-define-cmd "done" 'save-buffers-kill-emacs)
@@ -481,7 +532,8 @@
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
 
 (setq org-tag-alist
-      '(("Diffusion" . ?d)
+      '(("cal" . ?s)
+	  ("Diffusion" . ?d)
 	("DistributionalRL" . ?D)
 	("Quantization" . ?Q)
 	("Compression" . ?C)
@@ -859,50 +911,9 @@
     :ensure t)
 
 
-  
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(conda-anaconda-home conda-path)
- '(org-agenda-files
-   '("/Users/anlhr/research/distrRL.org" "/Users/anlhr/org/Tasks.org"
-     "/Users/anlhr/org/Habits.org" "/Users/anlhr/org/Schedule.org"
-     "/Users/anlhr/org/Birthdays.org"
-     "/Users/anlhr/research/planning.org"
-     "/Users/anlhr/GlobalSync/inbox.org"))
- '(package-selected-packages
-   '(all-the-icons-dired anki-editor async auto-complete-auctex
-			 auto-package-update citar-embark
-			 citar-org-roam clippy cmake-mode
-			 command-log-mode company-auctex company-box
-			 conda copilot counsel-projectile cuda-mode
-			 dap-mode dashboard dired-hide-dotfiles
-			 dired-open djvu doom-modeline doom-themes ein
-			 elfeed-org elfeed-score embark-consult
-			 eshell-git-prompt eterm-256color
-			 evil-collection evil-nerd-commenter evil-owl
-			 evil-surround flycheck-mypy forge fzf general
-			 google-translate graphviz-dot-mode
-			 haskell-mode helpful impatient-mode
-			 ivy-bibtex ivy-prescient latex-preview-pane
-			 lsp-ivy lsp-ui magic-latex-buffer marginalia
-			 no-littering nov openwith org-bullets
-			 org-contrib org-latex-impatient
-			 org-noter-pdftools org-ref org-roam-bibtex
-			 org-roam-ui ox-hugo pipenv plantuml-mode
-			 python-mode rainbow-delimiters smart-comment
-			 terraform-mode undo-tree vc-use-package
-			 vertico visual-fill-column vterm wgrep
-			 whisper))
- '(package-vc-selected-packages
-   '((whisper :vc-backend Git :url "https://github.com/natrys/whisper.el")
-     (anki-editor :vc-backend Git :url
-		  "https://github.com/anki-editor/anki-editor")
-     (vc-use-package :vc-backend Git :url
-		     "https://github.com/slotThe/vc-use-package")))
- '(pdf-tools-handle-upgrades t))
+  (custom-set-variables
+   '(conda-anaconda-home conda-path)
+   )
 
 (use-package cuda-mode
   :ensure t)
@@ -1105,6 +1116,10 @@
 (use-package graphviz-dot-mode
   :ensure t)
 
+(use-package impatient-mode
+  :ensure t
+  )
+
 (use-package tex
   :ensure auctex)
 
@@ -1124,7 +1139,21 @@
   :defer t
   )
 
-;;(latex-preview-pane-enable)
+(use-package latex-preview-pane
+  :ensure t
+  :defer t)
+
+;; While the preview pane is on, openwith yields to pdf-tools so the PDF
+;; opens inside Emacs. When the pane is toggled off, Sioyek is restored.
+(add-hook 'latex-preview-pane-mode-hook
+          (lambda ()
+            (if latex-preview-pane-mode
+                (openwith-mode -1)
+              (openwith-mode 1))))
+
+(space-leader
+  "cl" 'latex-preview-pane-mode)
+
 (setq TeX-auto-save t)
 (setq TeX-parse-self t)
 (setq-default TeX-master nil)
@@ -1467,14 +1496,8 @@
 ;; (package-vc-install
 ;;  '(anki-editor . (:url "https://github.com/anki-editor/anki-editor")))
 
-(unless (package-installed-p 'vc-use-package)
-  (package-vc-install "https://github.com/slotThe/vc-use-package"))
-(require 'vc-use-package)
-
 (use-package anki-editor
-  :vc (:fetcher github :repo anki-editor/anki-editor)
-  :ensure t
-  )
+  :vc (:url "https://github.com/anki-editor/anki-editor"))
 
   (general-create-definer anki-keybinds-set
     :keymaps '(normal visual emacs)
@@ -1547,6 +1570,103 @@
   (setq org-plantuml-executable-path "/usr/bin/plantuml")
   (setq org-plantuml-jar-path "/home/anloehr/.local/bin/plantuml.jar"))
 
+(defun my/ob-diagram--run (program args)
+  "Run PROGRAM with ARGS; signal an error with its output if it fails."
+  (with-temp-buffer
+    (let ((status (apply #'call-process program nil t nil args)))
+      (unless (eq status 0)
+        (error "%s failed (exit %s): %s"
+               program status (string-trim (buffer-string)))))))
+
+(defun my/ob-diagram--write-body (body prefix suffix)
+  "Write BODY to a UTF-8 temp file named with PREFIX/SUFFIX; return its path."
+  (let ((file (org-babel-temp-file prefix suffix))
+        (coding-system-for-write 'utf-8))
+    (with-temp-file file (insert body))
+    (expand-file-name file)))
+
+(defun my/ob-diagram--out-file (params lang)
+  "Return the absolute :file from PARAMS, creating its folder if needed."
+  (let ((out (or (cdr (assq :file params))
+                 (user-error "%s block needs a :file header argument" lang))))
+    (make-directory (file-name-directory (expand-file-name out)) t)
+    (expand-file-name out)))
+
+(with-eval-after-load 'org
+  (unless (assq 'dot org-babel-load-languages)
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     (append org-babel-load-languages '((dot . t)))))
+  (advice-add 'org-babel-execute:dot :before
+              (lambda (_body params) (my/ob-diagram--out-file params "Dot"))
+              '((name . my/dot-mkdir))))
+
+(defvar my/d2-command "d2"
+  "The d2 executable; use a full path if it isn't on `exec-path'.")
+
+(defvar org-babel-default-header-args:d2
+  '((:results . "file") (:exports . "results"))
+  "Default header arguments for D2 blocks.")
+
+(defun org-babel-execute:d2 (body params)
+  "Render D2 BODY to the :file in PARAMS."
+  (let* ((out (my/ob-diagram--out-file params "D2"))
+         (flags (cdr (assq :flags params)))
+         (in (my/ob-diagram--write-body body "d2-" ".d2")))
+    (my/ob-diagram--run
+     my/d2-command
+     (append (and flags (split-string-and-unquote (format "%s" flags)))
+             (list in out)))
+    nil))
+
+(defvar my/kroki-server "https://kroki.io"
+  "Base URL of the Kroki server.")
+
+(defvar org-babel-default-header-args:kroki
+  '((:results . "file") (:exports . "results"))
+  "Default header arguments for Kroki blocks.")
+
+(defun org-babel-execute:kroki (body params)
+  "Render BODY on a Kroki server and save it to the :file in PARAMS."
+  (let* ((type (or (cdr (assq :type params))
+                   (user-error "Kroki block needs a :type header argument")))
+         (out (my/ob-diagram--out-file params "Kroki"))
+         (fmt (or (cdr (assq :format params)) (file-name-extension out)))
+         (server (string-remove-suffix
+                  "/" (or (cdr (assq :server params)) my/kroki-server)))
+         (in (my/ob-diagram--write-body body "kroki-" ".txt")))
+    (my/ob-diagram--run
+     "curl"
+     (list "-sS" "--fail" "-X" "POST"
+           "-H" "Content-Type: text/plain; charset=utf-8"
+           "--data-binary" (concat "@" in)
+           "-o" out
+           (format "%s/%s/%s" server type fmt)))
+    nil))
+
+(with-eval-after-load 'org
+  (add-to-list 'org-babel-tangle-lang-exts '("d2" . "d2"))
+  (add-to-list 'org-src-lang-modes
+               (cons "d2" (if (fboundp 'd2-ts-mode) 'd2-ts 'd2)))
+  (add-to-list 'org-src-lang-modes '("kroki" . fundamental))
+
+  (defvar my/org-confirm-babel-evaluate-previous org-confirm-babel-evaluate
+    "Value of `org-confirm-babel-evaluate' before the diagram setup.")
+  (defun my/org-confirm-babel-evaluate (lang body)
+    "Don't ask for diagram languages; defer to the old setting otherwise."
+    (cond ((member lang '("dot" "d2" "kroki")) nil)
+          ((functionp my/org-confirm-babel-evaluate-previous)
+           (funcall my/org-confirm-babel-evaluate-previous lang body))
+          (t my/org-confirm-babel-evaluate-previous)))
+  (setq org-confirm-babel-evaluate #'my/org-confirm-babel-evaluate)
+
+  (defun my/org-refresh-images ()
+    "Refresh inline images after a Babel run (renamed in Org 9.8)."
+    (if (fboundp 'org-link-preview-refresh)
+        (org-link-preview-refresh)
+      (org-redisplay-inline-images)))
+  (add-hook 'org-babel-after-execute-hook #'my/org-refresh-images))
+
 (with-eval-after-load 'bibtex-completion
   (setq bibtex-completion-pdf-open-function
         (lambda (fpath)
@@ -1559,3 +1679,83 @@
   (setq openwith-associations
       '(("\\.pdf\\'" "sioyek" (file))))
   )
+
+(use-package whisper
+  :load-path "./whisper.el"
+  :bind ("C-c w" . whisper-run)
+  :config
+  (setopt whisper-install-directory (expand-file-name "~/.local/whisper")
+          whisper-model "base"
+          whisper-language "en"
+          whisper-translate nil
+          whisper-cursor-return 'start
+          whisper-use-threads (/ (num-processors) 2)))
+
+(defun rk/get-ffmpeg-device ()
+  "Gets the list of devices available to ffmpeg.
+The output of the ffmpeg command is pretty messy, e.g.
+  [AVFoundation indev @ 0x7f867f004580] AVFoundation video devices:
+  [AVFoundation indev @ 0x7f867f004580] [0] FaceTime HD Camera (Built-in)
+  [AVFoundation indev @ 0x7f867f004580] AVFoundation audio devices:
+  [AVFoundation indev @ 0x7f867f004580] [0] Cam Link 4K
+  [AVFoundation indev @ 0x7f867f004580] [1] MacBook Pro Microphone
+so we need to parse it to get the list of devices.
+The return value contains two lists, one for video devices and one for audio devices.
+Each list contains a list of cons cells, where the car is the device number and the cdr is the device name."
+  (unless (string-equal system-type "darwin")
+    (error "This function is currently only supported on macOS"))
+
+  (let ((lines (string-split (shell-command-to-string "ffmpeg -list_devices true -f avfoundation -i dummy || true") "\n")))
+    (cl-loop with at-video-devices = nil
+             with at-audio-devices = nil
+             with video-devices = nil
+             with audio-devices = nil
+             for line in lines
+             when (string-match "AVFoundation video devices:" line)
+             do (setq at-video-devices t
+                      at-audio-devices nil)
+             when (string-match "AVFoundation audio devices:" line)
+             do (setq at-audio-devices t
+                      at-video-devices nil)
+             when (and at-video-devices
+                       (string-match "\\[\\([0-9]+\\)\\] \\(.+\\)" line))
+             do (push (cons (string-to-number (match-string 1 line)) (match-string 2 line)) video-devices)
+             when (and at-audio-devices
+                       (string-match "\\[\\([0-9]+\\)\\] \\(.+\\)" line))
+             do (push (cons (string-to-number (match-string 1 line)) (match-string 2 line)) audio-devices)
+             finally return (list (nreverse video-devices) (nreverse audio-devices)))))
+
+(defun rk/find-device-matching (string type)
+  "Get the devices from `rk/get-ffmpeg-device' and look for a device
+matching `STRING'. `TYPE' can be :video or :audio."
+  (let* ((devices (rk/get-ffmpeg-device))
+         (device-list (if (eq type :video)
+                          (car devices)
+                        (cadr devices))))
+    (cl-loop for device in device-list
+             when (string-match-p string (cdr device))
+             return (car device))))
+
+(defcustom rk/default-audio-device nil
+  "The default audio device to use for whisper.el and outher audio processes."
+  :type 'string)
+
+(defun rk/select-default-audio-device (&optional device-name)
+  "Interactively select an audio device to use for whisper.el and other audio processes.
+If `DEVICE-NAME' is provided, it will be used instead of prompting the user."
+  (interactive)
+  (let* ((audio-devices (cadr (rk/get-ffmpeg-device)))
+         (indexes (mapcar #'car audio-devices))
+         (names (mapcar #'cdr audio-devices))
+         (name (or device-name (completing-read "Select audio device: " names nil t))))
+    (setq rk/default-audio-device (rk/find-device-matching name :audio))
+    (when (boundp 'whisper--ffmpeg-input-device)
+      (setq whisper--ffmpeg-input-device (format ":%s" rk/default-audio-device)))))
+
+(use-package org-caldav
+  :config
+(setq org-caldav-url "https://caldav.icloud.com/1101975663/calendars")
+  (setq org-caldav-calendar-id "056CB398-5017-4BE6-A1AB-FA606ED0EC5E")
+  (setq org-caldav-files nil)
+  (setq org-caldav-inbox "~/GlobalSync/caldav_push.org")
+  (setq org-icalendar-timezone "Europe/Berlin"))

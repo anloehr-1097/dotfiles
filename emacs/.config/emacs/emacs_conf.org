@@ -198,6 +198,78 @@ We need undo tree to enable the evil-redo functionality.
     :ensure t)
 #+end_src
 
+* REVIEW Treesitter
+=treesit-fold= only works in buffers with a tree-sitter parser, i.e. in a
+=*-ts-mode=.  =treesit-auto= installs missing grammars (asks first) and remaps
+the classic major modes to their =-ts-mode= variants.
+
+Evil's =za=, =zo=, =zc=, =zM=, =zR= dispatch through =evil-fold-list=, which
+=treesit-fold= hooks into itself, so they are not rebound here: that keeps
+folding working in org and other non-tree-sitter buffers.  =hs-minor-mode=
+gives the same keys in code buffers without a grammar (e.g. Emacs Lisp).
+
+#+begin_src emacs-lisp
+  (use-package treesit-auto
+    :custom
+    (treesit-auto-install 'prompt)
+    :config
+    (treesit-auto-add-to-auto-mode-alist 'all)
+    (global-treesit-auto-mode))
+
+  (add-hook 'prog-mode-hook #'hs-minor-mode)
+
+  (use-package treesit-fold
+    :after evil
+    :vc (:url "https://github.com/emacs-tree-sitter/treesit-fold"
+         :rev :newest)
+    :config
+    (global-treesit-fold-mode 1)
+
+    (defun my/treesit-fold--starts ()
+      "Return the sorted start positions of all multi-line foldable nodes."
+      (let* ((root (treesit-buffer-root-node))
+             (patterns (seq-mapcat (lambda (r) `((,(car r)) @name))
+                                   (alist-get major-mode treesit-fold-range-alist)))
+             (query (treesit-query-compile (treesit-node-language root) patterns)))
+        (sort (delete-dups
+               (cl-loop for (_ . node) in (treesit-query-capture root query)
+                        unless (treesit-fold--node-range-on-same-line node)
+                        collect (treesit-node-start node)))
+              #'<)))
+
+    (defun my/fold-next ()
+      "Move to the start of the next fold (like Vim's zj)."
+      (interactive)
+      (cond
+       ((bound-and-true-p treesit-fold-mode)
+        (let ((eol (line-end-position)))
+          (if-let* ((pos (seq-find (lambda (p) (> p eol)) (my/treesit-fold--starts))))
+              (goto-char pos)
+            (user-error "No next fold"))))
+       ((derived-mode-p 'org-mode) (org-next-visible-heading 1))
+       ((bound-and-true-p outline-minor-mode) (outline-next-visible-heading 1))
+       (t (beginning-of-defun -1))))
+
+    (defun my/fold-previous ()
+      "Move to the start of the previous fold (like Vim's zk)."
+      (interactive)
+      (cond
+       ((bound-and-true-p treesit-fold-mode)
+        (let ((bol (line-beginning-position)))
+          (if-let* ((pos (car (last (seq-filter (lambda (p) (< p bol))
+                                                (my/treesit-fold--starts))))))
+              (goto-char pos)
+            (user-error "No previous fold"))))
+       ((derived-mode-p 'org-mode) (org-previous-visible-heading 1))
+       ((bound-and-true-p outline-minor-mode) (outline-previous-visible-heading 1))
+       (t (beginning-of-defun))))
+
+    (evil-define-key '(normal visual motion) 'global
+      (kbd "zj") #'my/fold-next
+      (kbd "zk") #'my/fold-previous))
+  
+#+end_src
+
 * Keybinding Configuration
 This configuration uses [[https://evil.readthedocs.io/en/latest/index.html][evil-mode]] for a Vi-like modal editing experience.  [[https://github.com/noctuid/general.el][general.el]] is used for easy keybinding configuration that integrates well with which-key.  [[https://github.com/emacs-evil/evil-collection][evil-collection]] is used to automatically configure various Emacs modes with Vi-like keybindings for evil-mode.
 
@@ -237,7 +309,7 @@ This configuration uses [[https://evil.readthedocs.io/en/latest/index.html][evil
     (efs/leader-keys
       "t"  '(:ignore t :which-key "toggles")
       "tl" '(counsel-load-theme :which-key "choose theme")
-      "fde" '(lambda () (interactive) (find-file (expand-file-name "~/.emacs.d/emacs_conf.org")))))
+      "fde" '(lambda () (interactive) (find-file (expand-file-name "~/dotfiles/emacs/.config/emacs/emacs_conf.org")))))
 
   (use-package evil
     :after counsel
@@ -272,6 +344,7 @@ This configuration uses [[https://evil.readthedocs.io/en/latest/index.html][evil
     (evil-define-key '(normal visual) 'global (kbd "<leader>tp") 'tab-previous)
     (evil-define-key '(normal visual) 'global (kbd "<leader>tx") 'tab-close)
     (evil-define-key '(normal) 'global (kbd "S-RET") 'org-insert-item)
+
 
     ; statusline commands (available as ":<command>")
     (evil-ex-define-cmd "done" 'save-buffers-kill-emacs)
@@ -647,145 +720,146 @@ This section contains the basic configuration for =org-mode= plus the configurat
 
 #+begin_src emacs-lisp
 
-  (defun efs/org-mode-setup ()
-    (org-indent-mode)
-    (variable-pitch-mode 0)
-    (visual-line-mode 1))
+    (defun efs/org-mode-setup ()
+      (org-indent-mode)
+      (variable-pitch-mode 0)
+      (visual-line-mode 1))
 
-  (use-package org
-    :pin org
-    :commands (org-capture org-agenda)
-    :hook (org-mode . efs/org-mode-setup)
-    :config
-    (setq org-ellipsis " ▾")
-    (setq org-agenda-start-with-log-mode t)
-    (setq org-log-done 'time)
-    (setq org-log-into-drawer t)
-    ;; Load org-agenda-files from manifest instead of hardcoding
-    (when (locate-library "org-agenda-manifest")
-      (require 'org-agenda-manifest)
-      (org-agenda-manifest-setup))
-    :bind ("C-c l" . org-store-link))
+    (use-package org
+      :pin org
+      :commands (org-capture org-agenda)
+      :hook (org-mode . efs/org-mode-setup)
+      :config
+      (setq org-ellipsis " ▾")
+      (setq org-agenda-start-with-log-mode t)
+      (setq org-log-done 'time)
+      (setq org-log-into-drawer t)
+      ;; Load org-agenda-files from manifest instead of hardcoding
+      (when (locate-library "org-agenda-manifest")
+        (require 'org-agenda-manifest)
+        (org-agenda-manifest-setup))
+      :bind ("C-c l" . org-store-link))
 
-  (require 'org-habit)
-  (add-to-list 'org-modules 'org-habit)
-  (setq org-habit-graph-column 60)
+    (require 'org-habit)
+    (add-to-list 'org-modules 'org-habit)
+    (setq org-habit-graph-column 60)
 
-  (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
-  	(sequence "BACKLOG(b)" "PLAN(p)" "READY(r)" "ACTIVE(a)" "REVIEW(v)" "WAIT(w@/!)" "HOLD(h)" "|" "COMPLETED(c)" "CANC(k@)")))
+    (setq org-todo-keywords
+          '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+    	(sequence "BACKLOG(b)" "PLAN(p)" "READY(r)" "ACTIVE(a)" "REVIEW(v)" "WAIT(w@/!)" "HOLD(h)" "|" "COMPLETED(c)" "CANC(k@)")))
 
-  (setq org-refile-targets
-        (org-agenda-manifest--merge-refile-targets
-         '(("~/org/Archive.org" :maxlevel . 1)
-  	("~/research/backlog.org" :maxlevel . 3)
-  	("~/research/planning.org" :maxlevel . 3)
-  	("~/research/paperlist.org" :maxlevel . 3)
-  	("~/org/Journal.org" :maxlevel . 3))))
+    (setq org-refile-targets
+          (org-agenda-manifest--merge-refile-targets
+           '(("~/org/Archive.org" :maxlevel . 1)
+    	("~/research/backlog.org" :maxlevel . 3)
+    	("~/research/planning.org" :maxlevel . 3)
+    	("~/research/paperlist.org" :maxlevel . 3)
+    	("~/org/Journal.org" :maxlevel . 3))))
 
-  ;; Save Org buffers after refiling!
-  (advice-add 'org-refile :after 'org-save-all-org-buffers)
+    ;; Save Org buffers after refiling!
+    (advice-add 'org-refile :after 'org-save-all-org-buffers)
 
-  (setq org-tag-alist
-        '(("Diffusion" . ?d)
-  	("DistributionalRL" . ?D)
-  	("Quantization" . ?Q)
-  	("Compression" . ?C)
-  	("CriticLearning" . ?c)
-  	("planning" . ?p)
-  	("publish" . ?P)
-  	("note" . ?n)
-  	("idea" . ?i)
-  	))
+    (setq org-tag-alist
+          '(("cal" . ?s)
+  	  ("Diffusion" . ?d)
+    	("DistributionalRL" . ?D)
+    	("Quantization" . ?Q)
+    	("Compression" . ?C)
+    	("CriticLearning" . ?c)
+    	("planning" . ?p)
+    	("publish" . ?P)
+    	("note" . ?n)
+    	("idea" . ?i)
+    	))
 
-  ;; Configure custom agenda views
-  (setq org-agenda-custom-commands
-        '(("d" "Dashboard"
-  	 ((agenda "" ((org-deadline-warning-days 7)))
-  	  (todo "NEXT"
-  		((org-agenda-overriding-header "Next Tasks")))
-  	  (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))
+    ;; Configure custom agenda views
+    (setq org-agenda-custom-commands
+          '(("d" "Dashboard"
+    	 ((agenda "" ((org-deadline-warning-days 7)))
+    	  (todo "NEXT"
+    		((org-agenda-overriding-header "Next Tasks")))
+    	  (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))
 
-  	("n" "Next Tasks"
-  	 ((todo "NEXT"
-  		((org-agenda-overriding-header "Next Tasks")))))
+    	("n" "Next Tasks"
+    	 ((todo "NEXT"
+    		((org-agenda-overriding-header "Next Tasks")))))
 
-  	("W" "Work Tasks" tags-todo "+work-email")
+    	("W" "Work Tasks" tags-todo "+work-email")
 
-  	;; Low-effort next actions
-  	("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
-  	 ((org-agenda-overriding-header "Low Effort Tasks")
-  	  (org-agenda-max-todos 20)
-  	  (org-agenda-files org-agenda-files)))
+    	;; Low-effort next actions
+    	("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
+    	 ((org-agenda-overriding-header "Low Effort Tasks")
+    	  (org-agenda-max-todos 20)
+    	  (org-agenda-files org-agenda-files)))
 
-  	("w" "Workflow Status"
-  	 ((todo "WAIT"
-  		((org-agenda-overriding-header "Waiting on External")
-  		 (org-agenda-files org-agenda-files)))
-  	  (todo "REVIEW"
-  		((org-agenda-overriding-header "In Review")
-  		 (org-agenda-files org-agenda-files)))
-  	  (todo "PLAN"
-  		((org-agenda-overriding-header "In Planning")
-  		 (org-agenda-todo-list-sublevels nil)
-  		 (org-agenda-files org-agenda-files)))
-  	  (todo "BACKLOG"
-  		((org-agenda-overriding-header "Project Backlog")
-  		 (org-agenda-todo-list-sublevels nil)
-  		 (org-agenda-files org-agenda-files)))
-  	  (todo "READY"
-  		((org-agenda-overriding-header "Ready for Work")
-  		 (org-agenda-files org-agenda-files)))
-  	  (todo "ACTIVE"
-  		((org-agenda-overriding-header "Active Projects")
-  		 (org-agenda-files org-agenda-files)))
-  	  (todo "COMPLETED"
-  		((org-agenda-overriding-header "Completed Projects")
-  		 (org-agenda-files org-agenda-files)))
-  	  (todo "CANC"
-  		((org-agenda-overriding-header "Cancelled Projects")
-  		 (org-agenda-files org-agenda-files)))))))
-
-
-
-  (setq org-capture-templates
-        `(("t" "Tasks / Projects")
-  	("tt" "Task" entry (file+olp "~/org/Tasks.org" "Inbox")
-           "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
-
-  	("j" "Journal Entries")
-  	("jj" "Journal" entry
-           (file+olp+datetree "~/org/Journal.org")
-           "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
-           ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
-           :clock-in :clock-resume
-           :empty-lines 1)
-  	("jm" "Meeting" entry
-           (file+olp+datetree "~/org/Journal.org")
-           "* %<%I:%M %p> - %a :meetings:\n\n%?\n\n"
-           :clock-in :clock-resume
-           :empty-lines 1)
-
-  	("w" "Workflows")
-  	("we" "Checking Email" entry (file+olp+datetree "~/org/Journal.org")
-           "* Checking Email :email:\n\n%?" :clock-in :clock-resume :empty-lines 1)
-
-  	("m" "Metrics Capture")
-  	("mw" "Weight" table-line (file+headline "~/org/Metrics.org" "Weight")
-  	 "| %U | %^{Weight} | %^{Notes} |" :kill-buffer t)
-
-  	("a" "Anki")
-  	("aa" "Anki Add Basic And Reverse Card" entry (file+olp "~/org/anki/russian.org" "Captured") "** %^{Card Name} \n*** Front \n %^{English} \n*** Back \n%?"
-  	 )
-  	))
+    	("w" "Workflow Status"
+    	 ((todo "WAIT"
+    		((org-agenda-overriding-header "Waiting on External")
+    		 (org-agenda-files org-agenda-files)))
+    	  (todo "REVIEW"
+    		((org-agenda-overriding-header "In Review")
+    		 (org-agenda-files org-agenda-files)))
+    	  (todo "PLAN"
+    		((org-agenda-overriding-header "In Planning")
+    		 (org-agenda-todo-list-sublevels nil)
+    		 (org-agenda-files org-agenda-files)))
+    	  (todo "BACKLOG"
+    		((org-agenda-overriding-header "Project Backlog")
+    		 (org-agenda-todo-list-sublevels nil)
+    		 (org-agenda-files org-agenda-files)))
+    	  (todo "READY"
+    		((org-agenda-overriding-header "Ready for Work")
+    		 (org-agenda-files org-agenda-files)))
+    	  (todo "ACTIVE"
+    		((org-agenda-overriding-header "Active Projects")
+    		 (org-agenda-files org-agenda-files)))
+    	  (todo "COMPLETED"
+    		((org-agenda-overriding-header "Completed Projects")
+    		 (org-agenda-files org-agenda-files)))
+    	  (todo "CANC"
+    		((org-agenda-overriding-header "Cancelled Projects")
+    		 (org-agenda-files org-agenda-files)))))))
 
 
 
-  (define-key global-map (kbd "C-c j")
-  	    (lambda () (interactive) (org-capture nil "jj")))
+    (setq org-capture-templates
+          `(("t" "Tasks / Projects")
+    	("tt" "Task" entry (file+olp "~/org/Tasks.org" "Inbox")
+             "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
 
-  (efs/org-font-setup)
-  (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
+    	("j" "Journal Entries")
+    	("jj" "Journal" entry
+             (file+olp+datetree "~/org/Journal.org")
+             "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
+             ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
+             :clock-in :clock-resume
+             :empty-lines 1)
+    	("jm" "Meeting" entry
+             (file+olp+datetree "~/org/Journal.org")
+             "* %<%I:%M %p> - %a :meetings:\n\n%?\n\n"
+             :clock-in :clock-resume
+             :empty-lines 1)
+
+    	("w" "Workflows")
+    	("we" "Checking Email" entry (file+olp+datetree "~/org/Journal.org")
+             "* Checking Email :email:\n\n%?" :clock-in :clock-resume :empty-lines 1)
+
+    	("m" "Metrics Capture")
+    	("mw" "Weight" table-line (file+headline "~/org/Metrics.org" "Weight")
+    	 "| %U | %^{Weight} | %^{Notes} |" :kill-buffer t)
+
+    	("a" "Anki")
+    	("aa" "Anki Add Basic And Reverse Card" entry (file+olp "~/org/anki/russian.org" "Captured") "** %^{Card Name} \n*** Front \n %^{English} \n*** Back \n%?"
+    	 )
+    	))
+
+
+
+    (define-key global-map (kbd "C-c j")
+    	    (lambda () (interactive) (org-capture nil "jj")))
+
+    (efs/org-font-setup)
+    (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
 
 #+end_src
 
@@ -1728,15 +1802,6 @@ One advantage of =shell-mode= on Windows is that it's the only way to run =cmd.e
 
 The downsides to Eshell are that it can be harder to configure than other packages due to the particularity of where you need to set some options for them to go into effect, the lack of shell completions (by default) for some useful things like Git commands, and that REPL programs sometimes don't work as well.  However, many of these limitations can be dealt with by good configuration and installing external packages, so don't let that discourage you from trying it!
 
-*Useful key bindings:*
-
-- =C-c C-p= / =C-c C-n= - go back and forward in the buffer's prompts (also =[[= and =]]= with evil-mode)
-- =M-p= / =M-n= - go back and forward in the input history
-- =C-c C-u= - delete the current input string backwards up to the cursor
-- =counsel-esh-history= - A searchable history of commands typed into Eshell
-
-We will be covering Eshell more in future videos highlighting other things you can do with it.
-
 For more thoughts on Eshell, check out these articles by Pierre Neidhardt:
 - https://ambrevar.xyz/emacs-eshell/index.html
 - https://ambrevar.xyz/emacs-eshell-versus-shell/index.html
@@ -2158,14 +2223,8 @@ Dial the GC threshold back down so that garbage collection happens more frequent
   ;; (package-vc-install
   ;;  '(anki-editor . (:url "https://github.com/anki-editor/anki-editor")))
 
-  (unless (package-installed-p 'vc-use-package)
-    (package-vc-install "https://github.com/slotThe/vc-use-package"))
-  (require 'vc-use-package)
-
   (use-package anki-editor
-    :vc (:fetcher github :repo anki-editor/anki-editor)
-    :ensure t
-    )
+    :vc (:url "https://github.com/anki-editor/anki-editor"))
 
     (general-create-definer anki-keybinds-set
       :keymaps '(normal visual emacs)
@@ -2256,7 +2315,7 @@ Dial the GC threshold back down so that garbage collection happens more frequent
 
 
 
-* Plantum
+* Plantum and Diagrams
 #+begin_src emacs-lisp
   (use-package plantuml-mode
     :ensure t
@@ -2269,6 +2328,160 @@ Dial the GC threshold back down so that garbage collection happens more frequent
     (setq org-plantuml-jar-path "/home/anloehr/.local/bin/plantuml.jar"))
 
 #+end_src
+
+** Diagrams: Graphviz, D2 and Kroki in Org Babel
+
+Rendering for =dot=, =d2= and =kroki= source blocks. The blocks here carry no
+=:tangle= header, so they follow whatever your file already uses (for example
+=#+PROPERTY: header-args:emacs-lisp :tangle init.el= or =:tangle yes=).
+
+Everything is wrapped in =with-eval-after-load 'org=, so Org still isn't loaded
+at startup. If your config configures Org inside =(use-package org :config ...)=,
+you can move the body of these blocks there instead.
+
+Programs needed on PATH: =dot= (Graphviz), =d2=, and =curl= (Kroki). On macOS
+with GUI Emacs, PATH usually needs =exec-path-from-shell=.
+
+Don't also install MELPA's =ob-d2=: this defines the same function.
+
+** Helpers
+
+Run a program directly (no shell, so Windows paths with spaces work) and turn a
+failure into an Emacs error showing the tool's own message.
+
+#+begin_src emacs-lisp
+(defun my/ob-diagram--run (program args)
+  "Run PROGRAM with ARGS; signal an error with its output if it fails."
+  (with-temp-buffer
+    (let ((status (apply #'call-process program nil t nil args)))
+      (unless (eq status 0)
+        (error "%s failed (exit %s): %s"
+               program status (string-trim (buffer-string)))))))
+
+(defun my/ob-diagram--write-body (body prefix suffix)
+  "Write BODY to a UTF-8 temp file named with PREFIX/SUFFIX; return its path."
+  (let ((file (org-babel-temp-file prefix suffix))
+        (coding-system-for-write 'utf-8))
+    (with-temp-file file (insert body))
+    (expand-file-name file)))
+
+(defun my/ob-diagram--out-file (params lang)
+  "Return the absolute :file from PARAMS, creating its folder if needed."
+  (let ((out (or (cdr (assq :file params))
+                 (user-error "%s block needs a :file header argument" lang))))
+    (make-directory (file-name-directory (expand-file-name out)) t)
+    (expand-file-name out)))
+#+end_src
+
+** Graphviz
+
+Built into Org as =ob-dot=. This adds =dot= to your Babel languages without
+touching the others, and creates a missing output folder before =dot= runs.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  (unless (assq 'dot org-babel-load-languages)
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     (append org-babel-load-languages '((dot . t)))))
+  (advice-add 'org-babel-execute:dot :before
+              (lambda (_body params) (my/ob-diagram--out-file params "Dot"))
+              '((name . my/dot-mkdir))))
+#+end_src
+
+** D2
+
+Header args: =:file= (required; =.svg= needs nothing extra) and =:flags= for
+extra options, e.g. =:flags --layout=elk --pad 20=.
+
+#+begin_src emacs-lisp
+(defvar my/d2-command "d2"
+  "The d2 executable; use a full path if it isn't on `exec-path'.")
+
+(defvar org-babel-default-header-args:d2
+  '((:results . "file") (:exports . "results"))
+  "Default header arguments for D2 blocks.")
+
+(defun org-babel-execute:d2 (body params)
+  "Render D2 BODY to the :file in PARAMS."
+  (let* ((out (my/ob-diagram--out-file params "D2"))
+         (flags (cdr (assq :flags params)))
+         (in (my/ob-diagram--write-body body "d2-" ".d2")))
+    (my/ob-diagram--run
+     my/d2-command
+     (append (and flags (split-string-and-unquote (format "%s" flags)))
+             (list in out)))
+    nil))
+#+end_src
+
+** Kroki
+
+Header args: =:type= (required: =d2=, =graphviz=, =seqdiag=, =wavedrom=,
+=nomnoml=, =structurizr=, =plantuml=, =mermaid=, ...), =:file= (required; the
+extension picks the format), =:format= and =:server= to override per block.
+
+With the public server the diagram source leaves your machine; for private
+material run =docker run -p 8000:8000 yuzutech/kroki= and set
+=my/kroki-server= to ="http://localhost:8000"=.
+
+#+begin_src emacs-lisp
+(defvar my/kroki-server "https://kroki.io"
+  "Base URL of the Kroki server.")
+
+(defvar org-babel-default-header-args:kroki
+  '((:results . "file") (:exports . "results"))
+  "Default header arguments for Kroki blocks.")
+
+(defun org-babel-execute:kroki (body params)
+  "Render BODY on a Kroki server and save it to the :file in PARAMS."
+  (let* ((type (or (cdr (assq :type params))
+                   (user-error "Kroki block needs a :type header argument")))
+         (out (my/ob-diagram--out-file params "Kroki"))
+         (fmt (or (cdr (assq :format params)) (file-name-extension out)))
+         (server (string-remove-suffix
+                  "/" (or (cdr (assq :server params)) my/kroki-server)))
+         (in (my/ob-diagram--write-body body "kroki-" ".txt")))
+    (my/ob-diagram--run
+     "curl"
+     (list "-sS" "--fail" "-X" "POST"
+           "-H" "Content-Type: text/plain; charset=utf-8"
+           "--data-binary" (concat "@" in)
+           "-o" out
+           (format "%s/%s/%s" server type fmt)))
+    nil))
+#+end_src
+
+** Editing, confirmation and inline images
+
+The confirmation function keeps whatever you had before for other languages:
+if you already set =org-confirm-babel-evaluate= (to =nil=, =t= or a function),
+that still decides for every language except the three diagram ones.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  (add-to-list 'org-babel-tangle-lang-exts '("d2" . "d2"))
+  (add-to-list 'org-src-lang-modes
+               (cons "d2" (if (fboundp 'd2-ts-mode) 'd2-ts 'd2)))
+  (add-to-list 'org-src-lang-modes '("kroki" . fundamental))
+
+  (defvar my/org-confirm-babel-evaluate-previous org-confirm-babel-evaluate
+    "Value of `org-confirm-babel-evaluate' before the diagram setup.")
+  (defun my/org-confirm-babel-evaluate (lang body)
+    "Don't ask for diagram languages; defer to the old setting otherwise."
+    (cond ((member lang '("dot" "d2" "kroki")) nil)
+          ((functionp my/org-confirm-babel-evaluate-previous)
+           (funcall my/org-confirm-babel-evaluate-previous lang body))
+          (t my/org-confirm-babel-evaluate-previous)))
+  (setq org-confirm-babel-evaluate #'my/org-confirm-babel-evaluate)
+
+  (defun my/org-refresh-images ()
+    "Refresh inline images after a Babel run (renamed in Org 9.8)."
+    (if (fboundp 'org-link-preview-refresh)
+        (org-link-preview-refresh)
+      (org-redisplay-inline-images)))
+  (add-hook 'org-babel-after-execute-hook #'my/org-refresh-images))
+#+end_src
+
 * PDF viewer
 
 #+begin_src emacs-lisp
@@ -2294,9 +2507,9 @@ Dial the GC threshold back down so that garbage collection happens more frequent
 #+begin_src emacs-lisp
 (use-package whisper
   :load-path "./whisper.el"
-  :bind ("C-H-r" . whisper-run)
+  :bind ("C-c w" . whisper-run)
   :config
-  (setopt whisper-install-directory "/tmp/"
+  (setopt whisper-install-directory (expand-file-name "~/.local/whisper")
           whisper-model "base"
           whisper-language "en"
           whisper-translate nil
@@ -2371,4 +2584,16 @@ If `DEVICE-NAME' is provided, it will be used instead of prompting the user."
     (when (boundp 'whisper--ffmpeg-input-device)
       (setq whisper--ffmpeg-input-device (format ":%s" rk/default-audio-device)))))
 
+#+end_src
+* Calendar 2 way sync
+
+#+begin_src emacs-lisp
+
+    (use-package org-caldav
+    :config
+  (setq org-caldav-url "https://caldav.icloud.com/1101975663/calendars")
+    (setq org-caldav-calendar-id "056CB398-5017-4BE6-A1AB-FA606ED0EC5E")
+    (setq org-caldav-files nil)
+    (setq org-caldav-inbox "~/GlobalSync/caldav_push.org")
+    (setq org-icalendar-timezone "Europe/Berlin"))
 #+end_src
