@@ -1,5 +1,5 @@
 ;;; org-agenda-manifest.el --- Dynamic org-agenda file management with global/local split
-
+;;; -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;; This module provides functions to manage org-agenda files from separate global and local manifests.
 ;; Instead of hardcoding agenda files in init.el, this reads them from:

@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t; -*-
 ;;;  package --- Summary
 ; Custom org babel fun
 ;;; Commentary:
@@ -15,3 +16,4 @@
 (add-to-list 'org-src-lang-modes '("dot2tex" . graphviz-dot))
 
 (provide 'ob-dot2tex)
+
