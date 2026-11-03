@@ -12,14 +12,67 @@ I have been modifying it continuously to suit my needs.
 
 * Initial User information
 #+begin_src emacs-lisp
+    ;;; -*- lexical-binding: t; -*-
+    ;;; Code:
+
   (setq user-full-name "Andreas Loehr"
         user-mail-address "andreas.loehr97@gmail.com")
+#+end_src
+
+* Package System Setup
+Emacs has a built in package manager but it doesn't make it easy to automatically install packages on a new system the first time you pull down your configuration.  [[https://github.com/jwiegley/use-package][use-package]] is a really helpful package used in this configuration to make it a lot easier to automate the installation and configuration of everything else we use.
+
+#+begin_src emacs-lisp
+
+  ;; Initialize package sources
+  (require 'package)
+
+  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                           ("org" . "https://orgmode.org/elpa/")
+                           ("elpa" . "https://elpa.gnu.org/packages/")))
+
+  (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
+  (add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/"))
+
+  (package-initialize)
+  (unless package-archive-contents
+    (package-refresh-contents))
+
+  ;; Initialize use-package on non-Linux platforms
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+
+  (require 'use-package)
+  (setq use-package-always-ensure t)
+
+  (unless package-archive-contents
+    (package-refresh-contents))
+
+
+#+end_src
+
+** Automatic Package Updates
+The auto-package-update package helps us keep our Emacs packages up to date!  It will prompt you after a certain number of days either at startup or at a specific time of day to remind you to update your packages.
+
+You can also use =M-x auto-package-update-now= to update right now!
+
+#+begin_src emacs-lisp
+
+  (use-package auto-package-update
+    :custom
+    (auto-package-update-interval 30)
+    (auto-package-update-prompt-before-update t)
+    (auto-package-update-hide-results t)
+    :config
+    (auto-package-update-maybe)
+    (auto-package-update-at-time "09:00"))
+
 #+end_src
 
 * Custom elisp files
 
 #+begin_src emacs-lisp
-  (add-to-list 'load-path "~/.config/emacs/custom_elisp/")
+  (add-to-list 'load-path "~/dotfiles/emacs/.config/emacs/custom_elisp/")
   (require 'ob-dot2tex)
 
 #+end_src
@@ -63,59 +116,13 @@ I have been modifying it continuously to suit my needs.
     (setq dired-listing-switches "-al --group-directories-first")
 
   (setq default-frame-alist
-        '((font . "Iosevka Nerd Font-22")
+        '((font . "Iosevka NFM-16")
           (width . 50)
           (height . 50)))
   (setq visible-bell nil)
   (setq ring-bell-function 'ignore)
 #+end_src
 
-
-* Package System Setup
-Emacs has a built in package manager but it doesn't make it easy to automatically install packages on a new system the first time you pull down your configuration.  [[https://github.com/jwiegley/use-package][use-package]] is a really helpful package used in this configuration to make it a lot easier to automate the installation and configuration of everything else we use.
-
-#+begin_src emacs-lisp
-
-  ;; Initialize package sources
-  (require 'package)
-
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org" . "https://orgmode.org/elpa/")
-                           ("elpa" . "https://elpa.gnu.org/packages/")))
-
-  (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
-(add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/"))
-
-  (package-initialize)
-  (unless package-archive-contents
-    (package-refresh-contents))
-
-    ;; Initialize use-package on non-Linux platforms
-  (unless (package-installed-p 'use-package)
-    (package-install 'use-package))
-
-  (require 'use-package)
-  (setq use-package-always-ensure t)
-
-#+end_src
-
-** Automatic Package Updates
-The auto-package-update package helps us keep our Emacs packages up to date!  It will prompt you after a certain number of days either at startup or at a specific time of day to remind you to update your packages.
-
-You can also use =M-x auto-package-update-now= to update right now!
-
-#+begin_src emacs-lisp
-
-  (use-package auto-package-update
-    :custom
-    (auto-package-update-interval 30)
-    (auto-package-update-prompt-before-update t)
-    (auto-package-update-hide-results t)
-    :config
-    (auto-package-update-maybe)
-    (auto-package-update-at-time "09:00"))
-
-#+end_src
 
 * Keep Folders Clean
 We use the [[https://github.com/emacscollective/no-littering/blob/master/no-littering.el][no-littering]] package to keep folders where we edit files and the Emacs configuration folder clean!  It knows about a wide variety of variables for built in Emacs features as well as those from community packages so it can be much easier than finding and setting these variables yourself.
@@ -169,16 +176,16 @@ This section configures basic UI settings that remove unneeded elements to make 
 
 ** Font Configuration
 
-I am using the Iosevka Nerd Fonts  and [[https://fonts.google.com/specimen/Cantarell][Cantarell]] fonts for this configuration which will more than likely need to be installed on your machine.  Both can usually be found in the various Linux distro package managers or downloaded from the links above.
+I am using the Iosevka NFMs  and [[https://fonts.google.com/specimen/Cantarell][Cantarell]] fonts for this configuration which will more than likely need to be installed on your machine.  Both can usually be found in the various Linux distro package managers or downloaded from the links above.
 
 #+begin_src emacs-lisp
-  (set-face-attribute 'default nil :font "Iosevka Nerd Font-18" :height efs/default-font-size)
+  (set-face-attribute 'default nil :font "Iosevka NFM-16" :height efs/default-font-size)
 
   ;; Set the fixed pitch face
-  (set-face-attribute 'fixed-pitch nil :font "Iosevka Nerd Font-18" :height efs/default-font-size)
+  (set-face-attribute 'fixed-pitch nil :font "Iosevka NFM-16" :height efs/default-font-size)
 
   ;; Set the variable pitch face
-  (set-face-attribute 'variable-pitch nil :font "Iosevka Nerd Font-18" :height efs/default-variable-font-size :weight 'regular)
+  (set-face-attribute 'variable-pitch nil :font "Iosevka NFM-16" :height efs/default-variable-font-size :weight 'regular)
 
 #+end_src
 
@@ -499,24 +506,24 @@ The goal here is to mimic the workflow of vims 'vimgrep' & 'cdo' operations. Use
 Display relative line numbers instead of absolute line numbers.
 Only activate this in specific types of buffers.
 #+begin_src emacs-lisp
-    (setq display-line-numbers-type 'relative)
-    (add-hook 'prog-mode-hook #'display-line-numbers-mode)
-    (add-hook 'org-mode-hook #'display-line-numbers-mode)
-    (add-hook 'text-mode-hook #'display-line-numbers-mode)
+  (setq display-line-numbers-type 'relative)
+  (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+  (add-hook 'org-mode-hook #'display-line-numbers-mode)
+  (add-hook 'text-mode-hook #'display-line-numbers-mode)
 
-    (add-hook 'doc-view-mode
-              (lambda ()
-                (display-line-numbers-mode -1)))
+  (add-hook 'doc-view-mode
+            (lambda ()
+              (display-line-numbers-mode -1)))
 
-    (with-eval-after-load 'pdf-tools
-      (add-hook 'pdf-view-mode-hook
-                (lambda ()
-                  (progn
-                    (display-line-numbers-mode -1)
-                    (tooltip-mode -1)
-                    (setq use-system-tooltips nil)
-                    (setq pdf-annot-activate-created-annotations 'minibuffer)
-                    ))))
+  ;; (with-eval-a;; fter-load 'pdf-tools
+    ;; (add-hook 'pdf-view-mode-hook
+    ;;           (lambda ()
+    ;;             (progn
+    ;;               (display-line-numbers-mode -1)
+    ;;               (tooltip-mode -1)
+    ;;               (setq use-system-tooltips nil)
+    ;;               (setq pdf-annot-activate-created-annotations 'minibuffer)
+    ;;               ))))
 #+end_src
 
 ** Which Key
@@ -696,7 +703,7 @@ The =efs/org-font-setup= function configures various text faces to tweak the siz
                       (org-level-6 . 1.1)
                       (org-level-7 . 1.1)
                       (org-level-8 . 1.1)))
-        (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+        (set-face-attribute (car face) nil :font "Iosevka NFM-16" :weight 'regular :height (cdr face)))
 
       ;; Ensure that anything that should be fixed-pitch in Org files appears that way
       (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch :height 2.0)
@@ -1513,66 +1520,66 @@ Emacs' built in commenting functionality =comment-dwim= (usually bound to =M-;=)
 *** View Mode
 Install pdf-tools to view pdf documents.
 #+begin_src emacs-lisp
-  (use-package pdf-tools
-    :ensure t
-    :config
-    (pdf-tools-install)
+  ;; (use-package pdf-tools
+  ;;   :ensure t
+  ;;   :config
+  ;;   (pdf-tools-install)
 
-    (custom-set-variables
-     '(pdf-tools-handle-upgrades t))
+  ;;   (custom-set-variables
+  ;;    '(pdf-tools-handle-upgrades t))
 
-  (space-leader
-    "p" '(:ignore t :which-key "find")
-    "ph" 'pdf-annot-add-highlight-markup-annotation
-    "pt" 'pdf-annot-add-text-annotation)
+  ;; (space-leader
+  ;;   "p" '(:ignore t :which-key "find")
+  ;;   "ph" 'pdf-annot-add-highlight-markup-annotation
+  ;;   "pt" 'pdf-annot-add-text-annotation)
 
-  (setq pdf-annot-activate-created-annotations 'minibuffer)
-    )
+  ;; (setq pdf-annot-activate-created-annotations 'minibuffer)
+  ;;   )
 #+end_src
 
 **** Annotate
 #+begin_src emacs-lisp
 
 
-    (use-package nov
-      :ensure t)
+  ;; (use-package nov
+   ;;  :ensure t)
 
-      (use-package org-noter)
+    ;; (use-package org-noter)
 
-      (use-package org-pdftools)
+    ;; (use-package org-pdftools)
 
-      (use-package org-noter-pdftools)
-        ;;:after org-noter
-    ;;     :config
-    ;;     ;; Add a function to ensure precise note is inserted
-    ;;     (defun org-noter-pdftools-insert-precise-note (&optional toggle-no-questions)
-    ;;     (interactive "P")
-    ;;     (org-noter--with-valid-session
-    ;;      (let ((org-noter-insert-note-no-questions (if toggle-no-questions
-    ;;                                                    (not org-noter-insert-note-no-questions)
-    ;;                                                  org-noter-insert-note-no-questions))
-    ;;            (org-pdftools-use-isearch-link t)
-    ;;            (org-pdftools-use-freepointer-annot t))
-    ;;        (org-noter-insert-note (org-noter--get-precise-info)))))
+    ;; (use-package org-noter-pdftools)
+      ;;:after org-noter
+  ;;     :config
+  ;;     ;; Add a function to ensure precise note is inserted
+  ;;     (defun org-noter-pdftools-insert-precise-note (&optional toggle-no-questions)
+  ;;     (interactive "P")
+  ;;     (org-noter--with-valid-session
+  ;;      (let ((org-noter-insert-note-no-questions (if toggle-no-questions
+  ;;                                                    (not org-noter-insert-note-no-questions)
+  ;;                                                  org-noter-insert-note-no-questions))
+  ;;            (org-pdftools-use-isearch-link t)
+  ;;            (org-pdftools-use-freepointer-annot t))
+  ;;        (org-noter-insert-note (org-noter--get-precise-info)))))
 
-    ;;   ;; fix https://github.com/weirdNox/org-noter/pull/93/commits/f8349ae7575e599f375de1be6be2d0d5de4e6cbf
-    ;;   (defun org-noter-set-start-location (&optional arg)
-    ;;     "When opening a session with this document, go to the current location.
-    ;; With a prefix ARG, remove start location."
-    ;;     (interactive "P")
-    ;;     (org-noter--with-valid-session
-    ;;      (let ((inhibit-read-only t)
-    ;;            (ast (org-noter--parse-root))
-    ;;            (location (org-noter--doc-approx-location (when (called-interactively-p 'any) 'interactive))))
-    ;;        (with-current-buffer (org-noter--session-notes-buffer session)
-    ;;          (org-with-wide-buffer
-    ;;           (goto-char (org-element-property :begin ast))
-    ;;           (if arg
-    ;;               (org-entry-delete nil org-noter-property-note-location)
-    ;;             (org-entry-put nil org-noter-property-note-location
-    ;;                            (org-noter--pretty-print-location location))))))))
-    ;;   (with-eval-after-load 'pdf-annot
-    ;;     (add-hook 'pdf-annot-activate-handler-functions #'org-noter-pdftools-jump-to-note)))
+  ;;   ;; fix https://github.com/weirdNox/org-noter/pull/93/commits/f8349ae7575e599f375de1be6be2d0d5de4e6cbf
+  ;;   (defun org-noter-set-start-location (&optional arg)
+  ;;     "When opening a session with this document, go to the current location.
+  ;; With a prefix ARG, remove start location."
+  ;;     (interactive "P")
+  ;;     (org-noter--with-valid-session
+  ;;      (let ((inhibit-read-only t)
+  ;;            (ast (org-noter--parse-root))
+  ;;            (location (org-noter--doc-approx-location (when (called-interactively-p 'any) 'interactive))))
+  ;;        (with-current-buffer (org-noter--session-notes-buffer session)
+  ;;          (org-with-wide-buffer
+  ;;           (goto-char (org-element-property :begin ast))
+  ;;           (if arg
+  ;;               (org-entry-delete nil org-noter-property-note-location)
+  ;;             (org-entry-put nil org-noter-property-note-location
+  ;;                            (org-noter--pretty-print-location location))))))))
+  ;;   (with-eval-after-load 'pdf-annot
+  ;;     (add-hook 'pdf-annot-activate-handler-functions #'org-noter-pdftools-jump-to-note)))
 
 #+end_src
 
@@ -1598,16 +1605,16 @@ A simple IPython client for emacs porting jupyter notebooks / their functionalit
 
   ;; (add-to-list 'load-path "~/.config/emacs/copilot.el")
 
-  (use-package copilot
-    :ensure t
-    :hook (prog-mode . copilot-mode)
-    :bind (:map copilot-completion-map
-                ("<tab>" . copilot-accept-completion)
-                ("TAB" . copilot-accept-completion)
-                ("C-<tab>" . copilot-accept-completion-by-word)
-                ("C-TAB" . copilot-accept-completion-by-word)
-                ("C-n" . copilot-next-completion)
-                ("C-p" . copilot-previous-completion)))
+  ;; (use-package copilot
+  ;;   :ensure t
+  ;;   :hook (prog-mode . copilot-mode)
+  ;;   :bind (:map copilot-completion-map
+  ;;               ("<tab>" . copilot-accept-completion)
+  ;;               ("TAB" . copilot-accept-completion)
+  ;;               ("C-<tab>" . copilot-accept-completion-by-word)
+  ;;               ("C-TAB" . copilot-accept-completion-by-word)
+  ;;               ("C-n" . copilot-next-completion)
+  ;;               ("C-p" . copilot-previous-completion)))
 
 #+end_src
 
@@ -1676,7 +1683,7 @@ A simple IPython client for emacs porting jupyter notebooks / their functionalit
     (add-to-list 'org-file-apps '("\\.pdf\\'" . "sioyek %s")))
 
   (use-package org-latex-impatient
-    :defer t
+    :ensure t
     :hook (org-mode . org-latex-impatient-mode)
     :init
     (setq org-latex-impatient-tex2svg-bin
@@ -1808,25 +1815,28 @@ For more thoughts on Eshell, check out these articles by Pierre Neidhardt:
 
 #+begin_src emacs-lisp
 
-  (defun efs/configure-eshell ()
-    ;; Save command history when commands are entered
-    (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
+    (defun efs/configure-eshell ()
+      ;; Save command history when commands are entered
+      (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
 
-    ;; Truncate buffer for performance
-    (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
+      ;; Truncate buffer for performance
+      (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
 
-    ;; Bind some useful keys for evil-mode
-    (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
-    (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
-    (evil-normalize-keymaps)
+      ;; Bind some useful keys for evil-mode
+      (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
+      (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
+      (evil-normalize-keymaps)
 
-    (setq eshell-history-size         10000
-          eshell-buffer-maximum-lines 10000
-          eshell-hist-ignoredups t
-          eshell-scroll-to-bottom-on-input t))
+      (setq eshell-history-size         10000
+            eshell-buffer-maximum-lines 10000
+            eshell-hist-ignoredups t
+            eshell-scroll-to-bottom-on-input t))
 
   (use-package eshell-git-prompt
-    :after eshell)
+    :ensure t
+    :after eshell
+    :demand t)
+
 
   (use-package eshell
     :hook (eshell-first-time-mode . efs/configure-eshell)
@@ -1834,9 +1844,12 @@ For more thoughts on Eshell, check out these articles by Pierre Neidhardt:
 
     (with-eval-after-load 'esh-opt
       (setq eshell-destroy-buffer-when-process-dies t)
-      (setq eshell-visual-commands '("htop" "zsh" "vim")))
+      (setq eshell-visual-commands '("htop" "zsh" "vim"))))
 
-    (eshell-git-prompt-use-theme 'powerline))
+      (with-eval-after-load 'esh-opt
+        (setq eshell-destroy-buffer-when-process-dies t)
+        (setq eshell-visual-commands '("htop" "zsh" "vim")))
+
 
 
 #+end_src
@@ -2247,7 +2260,7 @@ Dial the GC threshold back down so that garbage collection happens more frequent
     (message "New emc frame created.")
     (select-frame (selected-frame))
     (set-background-color "black")
-    (set-frame-font "Iosevka Nerd Font-22")
+    (set-frame-font "Iosevka NFM-16")
     )
 
   ;; (add-hook 'server-after-make-frame-hook #'my-daemon-frame-setup)

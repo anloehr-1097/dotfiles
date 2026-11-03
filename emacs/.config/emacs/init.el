@@ -1,7 +1,43 @@
+;;; -*- lexical-binding: t; -*-
+  ;;; Code:
+
 (setq user-full-name "Andreas Loehr"
       user-mail-address "andreas.loehr97@gmail.com")
 
-(add-to-list 'load-path "~/.config/emacs/custom_elisp/")
+;; Initialize package sources
+(require 'package)
+
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                         ("org" . "https://orgmode.org/elpa/")
+                         ("elpa" . "https://elpa.gnu.org/packages/")))
+
+(add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
+(add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/"))
+
+(package-initialize)
+(unless package-archive-contents
+  (package-refresh-contents))
+
+;; Initialize use-package on non-Linux platforms
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+
+(unless package-archive-contents
+  (package-refresh-contents))
+
+(use-package auto-package-update
+  :custom
+  (auto-package-update-interval 30)
+  (auto-package-update-prompt-before-update t)
+  (auto-package-update-hide-results t)
+  :config
+  (auto-package-update-maybe)
+  (auto-package-update-at-time "09:00"))
+
+(add-to-list 'load-path "~/dotfiles/emacs/.config/emacs/custom_elisp/")
 (require 'ob-dot2tex)
 
 ;; setting directory program based on operating system
@@ -35,41 +71,11 @@
   (setq dired-listing-switches "-al --group-directories-first")
 
 (setq default-frame-alist
-      '((font . "Iosevka Nerd Font-22")
+      '((font . "Iosevka NFM-16")
         (width . 50)
         (height . 50)))
 (setq visible-bell nil)
 (setq ring-bell-function 'ignore)
-
-;; Initialize package sources
-  (require 'package)
-
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org" . "https://orgmode.org/elpa/")
-                           ("elpa" . "https://elpa.gnu.org/packages/")))
-
-  (add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/"))
-(add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/"))
-
-  (package-initialize)
-  (unless package-archive-contents
-    (package-refresh-contents))
-
-    ;; Initialize use-package on non-Linux platforms
-  (unless (package-installed-p 'use-package)
-    (package-install 'use-package))
-
-  (require 'use-package)
-  (setq use-package-always-ensure t)
-
-(use-package auto-package-update
-  :custom
-  (auto-package-update-interval 30)
-  (auto-package-update-prompt-before-update t)
-  (auto-package-update-hide-results t)
-  :config
-  (auto-package-update-maybe)
-  (auto-package-update-at-time "09:00"))
 
 ;; NOTE: If you want to move everything out of the ~/.emacs.d folder
 ;; reliably, set `user-emacs-directory` before loading no-littering!
@@ -106,13 +112,13 @@
 ;;                 pdf-view-mode-hook))
 ;;   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(set-face-attribute 'default nil :font "Iosevka Nerd Font-18" :height efs/default-font-size)
+(set-face-attribute 'default nil :font "Iosevka NFM-16" :height efs/default-font-size)
 
 ;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil :font "Iosevka Nerd Font-18" :height efs/default-font-size)
+(set-face-attribute 'fixed-pitch nil :font "Iosevka NFM-16" :height efs/default-font-size)
 
 ;; Set the variable pitch face
-(set-face-attribute 'variable-pitch nil :font "Iosevka Nerd Font-18" :height efs/default-variable-font-size :weight 'regular)
+(set-face-attribute 'variable-pitch nil :font "Iosevka NFM-16" :height efs/default-variable-font-size :weight 'regular)
 
 (use-package undo-tree
   :ensure t
@@ -361,15 +367,15 @@
           (lambda ()
             (display-line-numbers-mode -1)))
 
-(with-eval-after-load 'pdf-tools
-  (add-hook 'pdf-view-mode-hook
-            (lambda ()
-              (progn
-                (display-line-numbers-mode -1)
-                (tooltip-mode -1)
-                (setq use-system-tooltips nil)
-                (setq pdf-annot-activate-created-annotations 'minibuffer)
-                ))))
+;; (with-eval-a;; fter-load 'pdf-tools
+  ;; (add-hook 'pdf-view-mode-hook
+  ;;           (lambda ()
+  ;;             (progn
+  ;;               (display-line-numbers-mode -1)
+  ;;               (tooltip-mode -1)
+  ;;               (setq use-system-tooltips nil)
+  ;;               (setq pdf-annot-activate-created-annotations 'minibuffer)
+  ;;               ))))
 
 (use-package which-key
   :defer 0
@@ -475,7 +481,7 @@
                     (org-level-6 . 1.1)
                     (org-level-7 . 1.1)
                     (org-level-8 . 1.1)))
-      (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+      (set-face-attribute (car face) nil :font "Iosevka NFM-16" :weight 'regular :height (cdr face)))
 
     ;; Ensure that anything that should be fixed-pitch in Org files appears that way
     (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch :height 2.0)
@@ -1033,30 +1039,30 @@
   :config
   (global-evil-surround-mode 1))
 
-(use-package pdf-tools
-  :ensure t
-  :config
-  (pdf-tools-install)
+;; (use-package pdf-tools
+;;   :ensure t
+;;   :config
+;;   (pdf-tools-install)
 
-  (custom-set-variables
-   '(pdf-tools-handle-upgrades t))
+;;   (custom-set-variables
+;;    '(pdf-tools-handle-upgrades t))
 
-(space-leader
-  "p" '(:ignore t :which-key "find")
-  "ph" 'pdf-annot-add-highlight-markup-annotation
-  "pt" 'pdf-annot-add-text-annotation)
+;; (space-leader
+;;   "p" '(:ignore t :which-key "find")
+;;   "ph" 'pdf-annot-add-highlight-markup-annotation
+;;   "pt" 'pdf-annot-add-text-annotation)
 
-(setq pdf-annot-activate-created-annotations 'minibuffer)
-  )
+;; (setq pdf-annot-activate-created-annotations 'minibuffer)
+;;   )
 
-(use-package nov
-  :ensure t)
+;; (use-package nov
+ ;;  :ensure t)
 
-  (use-package org-noter)
+  ;; (use-package org-noter)
 
-  (use-package org-pdftools)
+  ;; (use-package org-pdftools)
 
-  (use-package org-noter-pdftools)
+  ;; (use-package org-noter-pdftools)
     ;;:after org-noter
 ;;     :config
 ;;     ;; Add a function to ensure precise note is inserted
@@ -1102,16 +1108,16 @@
 
 ;; (add-to-list 'load-path "~/.config/emacs/copilot.el")
 
-(use-package copilot
-  :ensure t
-  :hook (prog-mode . copilot-mode)
-  :bind (:map copilot-completion-map
-              ("<tab>" . copilot-accept-completion)
-              ("TAB" . copilot-accept-completion)
-              ("C-<tab>" . copilot-accept-completion-by-word)
-              ("C-TAB" . copilot-accept-completion-by-word)
-              ("C-n" . copilot-next-completion)
-              ("C-p" . copilot-previous-completion)))
+;; (use-package copilot
+;;   :ensure t
+;;   :hook (prog-mode . copilot-mode)
+;;   :bind (:map copilot-completion-map
+;;               ("<tab>" . copilot-accept-completion)
+;;               ("TAB" . copilot-accept-completion)
+;;               ("C-<tab>" . copilot-accept-completion-by-word)
+;;               ("C-TAB" . copilot-accept-completion-by-word)
+;;               ("C-n" . copilot-next-completion)
+;;               ("C-p" . copilot-previous-completion)))
 
 (use-package graphviz-dot-mode
   :ensure t)
@@ -1166,7 +1172,7 @@
   (add-to-list 'org-file-apps '("\\.pdf\\'" . "sioyek %s")))
 
 (use-package org-latex-impatient
-  :defer t
+  :ensure t
   :hook (org-mode . org-latex-impatient-mode)
   :init
   (setq org-latex-impatient-tex2svg-bin
@@ -1214,24 +1220,27 @@
   (setq explicit-powershell.exe-args '()))
 
 (defun efs/configure-eshell ()
-  ;; Save command history when commands are entered
-  (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
+    ;; Save command history when commands are entered
+    (add-hook 'eshell-pre-command-hook 'eshell-save-some-history)
 
-  ;; Truncate buffer for performance
-  (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
+    ;; Truncate buffer for performance
+    (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
 
-  ;; Bind some useful keys for evil-mode
-  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
-  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
-  (evil-normalize-keymaps)
+    ;; Bind some useful keys for evil-mode
+    (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
+    (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
+    (evil-normalize-keymaps)
 
-  (setq eshell-history-size         10000
-        eshell-buffer-maximum-lines 10000
-        eshell-hist-ignoredups t
-        eshell-scroll-to-bottom-on-input t))
+    (setq eshell-history-size         10000
+          eshell-buffer-maximum-lines 10000
+          eshell-hist-ignoredups t
+          eshell-scroll-to-bottom-on-input t))
 
 (use-package eshell-git-prompt
-  :after eshell)
+  :ensure t
+  :after eshell
+  :demand t)
+
 
 (use-package eshell
   :hook (eshell-first-time-mode . efs/configure-eshell)
@@ -1239,9 +1248,11 @@
 
   (with-eval-after-load 'esh-opt
     (setq eshell-destroy-buffer-when-process-dies t)
-    (setq eshell-visual-commands '("htop" "zsh" "vim")))
+    (setq eshell-visual-commands '("htop" "zsh" "vim"))))
 
-  (eshell-git-prompt-use-theme 'powerline))
+    (with-eval-after-load 'esh-opt
+      (setq eshell-destroy-buffer-when-process-dies t)
+      (setq eshell-visual-commands '("htop" "zsh" "vim")))
 
 (use-package dired
   :ensure nil
@@ -1515,7 +1526,7 @@
   (message "New emc frame created.")
   (select-frame (selected-frame))
   (set-background-color "black")
-  (set-frame-font "Iosevka Nerd Font-22")
+  (set-frame-font "Iosevka NFM-16")
   )
 
 ;; (add-hook 'server-after-make-frame-hook #'my-daemon-frame-setup)
