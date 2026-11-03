@@ -484,17 +484,17 @@
       (set-face-attribute (car face) nil :font "Iosevka NFM-16" :weight 'regular :height (cdr face)))
 
     ;; Ensure that anything that should be fixed-pitch in Org files appears that way
-    (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch :height 2.0)
+    (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch :height 1.0)
     (set-face-attribute 'org-table nil    :inherit 'fixed-pitch :height 2.0)
     (set-face-attribute 'org-formula nil  :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'org-code nil     :inherit '(shadow fixed-pitch) :height 2.0)
+    (set-face-attribute 'org-code nil     :inherit '(shadow fixed-pitch) :height 1.0)
     (set-face-attribute 'org-table nil    :inherit '(shadow fixed-pitch))
-    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch) :height 2.0)
-    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch) :height 2.0)
-    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch) :height 2.0)
-    (set-face-attribute 'org-checkbox nil  :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'line-number nil :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'line-number-current-line nil :inherit 'fixed-pitch :height 2.0))
+    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch) :height 1.0)
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch) :height 1.0)
+    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch) :height 1.0)
+    (set-face-attribute 'org-checkbox nil  :inherit 'fixed-pitch :height 1.0)
+    (set-face-attribute 'line-number nil :inherit 'fixed-pitch :height 1.0)
+    (set-face-attribute 'line-number-current-line nil :inherit 'fixed-pitch :height 1.0))
 ;; set org directory
 (setq org-directory "~/org/")
 
