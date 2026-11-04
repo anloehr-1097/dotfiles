@@ -33,8 +33,8 @@ if [[ $OSTYPE == darwin* ]]; then
 
 elif [[ "$OSTYPE" =~ "linux" && ! "$XDG_SESSION_TYPE" =~ "wayland" ]]; then
     # only set xkbmap if we're on linux and not using wayland, since wayland compositors handle this differently
-    echo "Running on Linux with X11, setting xkbmap to us."
-    setxkbmap us
+    # echo "Running on Linux with X11, setting xkbmap to us."
+    # setxkbmap us
     echo "OS: Linux"
 fi
 
@@ -57,10 +57,6 @@ alias emct="emacsclient -t"
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
-source $HOME/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
 
 export PATH="/usr/local/opt/python@3.11:$PATH"
 export PATH="/usr/local/opt/sqlite/bin:$PATH"
@@ -167,7 +163,8 @@ else
         source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
     fi
 fi
+export QT_ROOT="$HOME/Qt/6.8.3/gcc_64"
+export AWS_PROFILE="andreas-l"
+source ~/setup-claude.sh
+eval "$(oh-my-posh init zsh)"
 
-source /home/andy/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /home/andy/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /home/andy/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
