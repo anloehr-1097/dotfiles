@@ -29,17 +29,23 @@
            gcs-done))
 
   (add-hook 'emacs-startup-hook #'efs/display-startup-time)
-  (defvar efs/default-font-size 100)
-  (defvar efs/default-variable-font-size 100)
+  (defvar efs/default-font-size 180)  ;; Changed from 100 to 180 for 18pt font
+  (defvar efs/default-variable-font-size 180)
  ;; (setq insert-directory-program "gls" dired-use-ls-dired t)
   (setq dired-listing-switches "-al --group-directories-first")
 
+;; Use consistent font specification - no conflicts between frame-alist and faces
 (setq default-frame-alist
-      '((font . "Iosevka Nerd Font-22")
+      '((font . "Iosevka Nerd Font-18")
         (width . 50)
         (height . 50)))
 (setq visible-bell nil)
 (setq ring-bell-function 'ignore)
+
+;; Set fonts consistently - only once, no redundant calls
+(set-face-attribute 'default nil :font "Iosevka Nerd Font" :height efs/default-font-size)
+(set-face-attribute 'fixed-pitch nil :font "Iosevka Nerd Font" :height efs/default-font-size)
+(set-face-attribute 'variable-pitch nil :font "Cantarell" :height efs/default-variable-font-size :weight 'regular)
 
 ;; Initialize package sources
   (require 'package)
@@ -106,13 +112,8 @@
 ;;                 pdf-view-mode-hook))
 ;;   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(set-face-attribute 'default nil :font "Iosevka Nerd Font-18" :height efs/default-font-size)
-
-;; Set the fixed pitch face
-(set-face-attribute 'fixed-pitch nil :font "Iosevka Nerd Font-18" :height efs/default-font-size)
-
-;; Set the variable pitch face
-(set-face-attribute 'variable-pitch nil :font "Iosevka Nerd Font-18" :height efs/default-variable-font-size :weight 'regular)
+;; Fonts already configured in Startup Performance section
+;; This section intentionally left empty to avoid redundant font setting
 
 (use-package undo-tree
   :ensure t
@@ -197,13 +198,13 @@
   ;;:states '(normal visual emacs)
   ;;:keymaps 'override
   "f" '(:ignore t :which-key "find")
-  "ff" 'counsel-find-file
-  "fs" 'rgrep
-  "fb" 'swiper
+  "ff" 'my/fzf-find-file-preview
+  "fs" 'consult-ripgrep
+  "fb" 'consult-line
   "e" '(:ignore t :which-key "emacs-specific")
   "ee" 'eval-region
   "eb" 'eval-buffer
-  "b" 'counsel-switch-buffer
+  "b" 'consult-buffer
   "k" 'kill-buffer
   "s" 'avy-goto-char)
 
@@ -214,11 +215,10 @@
 
   (efs/leader-keys
     "t"  '(:ignore t :which-key "toggles")
-    "tl" '(counsel-load-theme :which-key "choose theme")
+    "tl" '(load-theme :which-key "choose theme")
     "fde" '(lambda () (interactive) (find-file (expand-file-name "~/dotfiles/emacs/.config/emacs/emacs_conf.org")))))
 
 (use-package evil
-  :after counsel
   :init
   (setq evil-search-module 'evil-search)
   (setq evil-want-integration t)
@@ -229,10 +229,10 @@
   (evil-mode 1)
   (evil-set-leader nil (kbd "SPC"))
   ; buffer select, buffer list, find file, delete window
-  (evil-define-key 'normal 'global (kbd "<leader>b") 'counsel-switch-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>b") 'consult-buffer)
   (evil-define-key 'normal 'global (kbd "<leader>B") 'list-buffers)
-  (evil-define-key 'normal 'global (kbd "<leader>ff") 'find-file)
-  (evil-define-key 'normal 'global (kbd "<leader>fs") 'rgrep)
+  (evil-define-key 'normal 'global (kbd "<leader>ff") 'my/fzf-find-file-preview)
+  (evil-define-key 'normal 'global (kbd "<leader>fs") 'consult-ripgrep)
   ; (evil-define-key 'normal 'global (kbd "<leader>0") 'delete-window) ;
   ; definition jumping (gd already goes to definition)
   (evil-define-key 'normal 'global (kbd "gD") 'xref-pop-marker-stack)
@@ -289,7 +289,18 @@
       fzf/grep-command "grep -nrH"
       ;; If nil, the fzf buffer will appear at the top of the window
       fzf/position-bottom t
-      fzf/window-height 15))
+      fzf/window-height 15
+      ;; Live preview pane while navigating: syntax-highlighted with bat,
+      ;; fall back to plain cat if bat is unavailable.
+      fzf/args-for-preview "--preview 'bat --color always {} 2>/dev/null || cat {}'")
+
+;; SPC ff: recursive fuzzy file finding over the current directory
+;; (or projectile project root), live while typing, with a preview pane.
+;; `fzf' with a non-nil WITH-PREVIEW arg appends `fzf/args-for-preview'.
+(defun my/fzf-find-file-preview ()
+  "Run `fzf' over the current directory with a live file preview."
+  (interactive)
+  (fzf t)))
 
 (use-package wgrep
   :ensure t)
@@ -298,13 +309,50 @@
   :commands command-log-mode)
 
 (defun black-bg ()
-  (set-background-color "black")
-  )
+  (set-background-color "black"))
 
 (use-package doom-themes
   :ensure t
-  :init (load-theme 'doom-tokyo-night t)
-  :hook ('black-bg))
+  :config
+  ;; Load the theme as part of the package's loading logic (:config runs
+  ;; after doom-themes is loaded, so the theme file is on the load path).
+  ;; The guard makes it idempotent: double-loading a doom theme scales
+  ;; face sizes brutally (org-level-1 1.2 -> 1.44 -> ... on every reload).
+  (unless (member 'doom-one custom-enabled-themes)
+    (load-theme 'doom-one t))
+  ;; doom-one already uses a near-black background; uncomment black-bg
+  ;; if you want a pure black background forced on top of the theme:
+  ;; (black-bg)
+  )
+
+;; Ef themes (Protesilaos Stamatis) — set as the active theme system.
+;; modus-themes-load-theme disables all other enabled themes first,
+;; so ef-dark cleanly replaces the doom-one loaded above.
+(use-package ef-themes
+  :ensure t
+  :init
+  ;; This makes the Modus commands listed below consider only the Ef
+  ;; themes.  For an alternative that includes Modus and all
+  ;; derivative themes (like Ef), enable the
+  ;; `modus-themes-include-derivatives-mode' instead.  The manual of
+  ;; the Ef themes has a section that explains all the possibilities:
+  ;;
+  ;; - Evaluate `(info "(ef-themes) Working with other Modus themes or taking over Modus")'
+  ;; - Visit <https://protesilaos.com/emacs/ef-themes#h:6585235a-5219-4f78-9dd5-6a64d87d1b6e>
+  (ef-themes-take-over-modus-themes-mode 1)
+  :bind
+  (("<f5>" . modus-themes-rotate)
+   ("C-<f5>" . modus-themes-select)
+   ("M-<f5>" . modus-themes-load-random))
+  :config
+  ;; All customisations here.
+  (setq modus-themes-mixed-fonts t)
+  (setq modus-themes-italic-constructs t)
+
+  ;; Finally, load your theme of choice (or a random one with
+  ;; `modus-themes-load-random', `modus-themes-load-random-dark',
+  ;; `modus-themes-load-random-light').
+  (modus-themes-load-theme 'ef-dark))
 
 
 
@@ -321,7 +369,12 @@
 
 (use-package doom-modeline
   :init (doom-modeline-mode 1)
-  :custom ((doom-modeline-height 15)))
+  :custom
+  ((doom-modeline-height 15)
+   (doom-modeline-buffer-file-name-style 'truncate-upto-project)  ; Faster rendering
+   (doom-modeline-enable-word-count nil)  ; Disable word count updates
+   (doom-modeline-major-mode-color-icon t)
+   (doom-modeline-bar-width 3)))
 
 (use-package dashboard
   :ensure t
@@ -352,15 +405,54 @@
   (setq dashboard-set-navigator t)
   (setq dashboard-init-info "Welcome to Emacs!")
 
+;; Use relative line numbers (shows distance from current line)
 (setq display-line-numbers-type 'relative)
+
+;; Prevent Emacs from widening gutter for large line numbers
+(setq display-line-numbers-widen nil)
+
+;; Left-align line numbers and use subtle theme-matching colors
+;; Use tabular-nums variant if available for consistent digit width
+(set-face-attribute 'line-number nil
+                    :inherit 'default          ; Inherit from theme
+                    :foreground 'unspecified   ; Let theme decide
+                    :background 'unspecified
+                    :box nil
+                    :weight 'normal)
+
+;; Current line number slightly more visible but still subtle
+(set-face-attribute 'line-number-current-line nil
+                    :inherit 'default
+                    :foreground 'unspecified
+                    :background 'unspecified
+                    :weight 'bold)
+
+;; Reapply face settings after Org mode initializes (Org can override faces)
+(add-hook 'org-mode-hook
+          (lambda ()
+            (set-face-attribute 'line-number nil
+                                :inherit 'default
+                                :foreground 'unspecified
+                                :background 'unspecified
+                                :box nil
+                                :weight 'normal)
+            (set-face-attribute 'line-number-current-line nil
+                                :inherit 'default
+                                :foreground 'unspecified
+                                :background 'unspecified
+                                :weight 'bold)))
+
+;; Enable line numbers in programming and org modes
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
 (add-hook 'org-mode-hook #'display-line-numbers-mode)
 (add-hook 'text-mode-hook #'display-line-numbers-mode)
 
+;; Disable line numbers in documentation view
 (add-hook 'doc-view-mode
           (lambda ()
             (display-line-numbers-mode -1)))
 
+;; Disable line numbers in PDF view
 (with-eval-after-load 'pdf-tools
   (add-hook 'pdf-view-mode-hook
             (lambda ()
@@ -380,54 +472,135 @@
 
 (use-package flycheck
   :ensure t
-  :init (global-flycheck-mode)
+  :init
+  ;; Enable flycheck but reduce check frequency to avoid redisplay overhead
+  (global-flycheck-mode)
+  :custom
+  (flycheck-checker-error-threshold 500)  ; Limit errors to process
+  (flycheck-idle-change-delay 1.5)        ; Wait longer before checking after typing
+  (flycheck-disabled-checkers '(emacs-lisp-checkdoc))  ; Disable slow checkers
   )
 
+;; Enable Vertico for vertical completion UI
 (use-package vertico
-  :ensure t
+  :init
+  (vertico-mode)
+  :custom
+  (vertico-cycle t))                ; Cycle from last to first candidate
+
+;; Configure completion styles with Orderless
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic partial-completion)))
+
+;; Enable Consult for enhanced commands
+(use-package consult
+  :bind (;; C-x bindings (ctl-x-map)
+         ("C-x b" . consult-buffer)
+         ("C-x r b" . consult-bookmark)
+         ("C-x p b" . consult-project-buffer)
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop)
+         ;; M-g bindings (goto-map)
+         ("M-g g" . consult-goto-line)
+         ("M-g M-g" . consult-goto-line)
+         ("M-g o" . consult-outline)
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-imenu-multi)
+         ;; M-s bindings (search-map)
+         ("M-s d" . consult-find)
+         ("M-s D" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history)
+         ("M-s e" . consult-isearch-history)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)
+         ("M-r" . consult-history))
+  :custom
+  (consult-preview-key 'any)          ; Preview on any key press
+  ;; NOTE: In current consult versions the relevant variables are
+  ;; `consult-find-args' and `consult-fd-args' (NOT the older
+  ;; `consult-find-command'). We make `consult-find' use fd, which is
+  ;; fast, fuzzy over current-dir files and respects .gitignore.
+  (consult-find-args "fd --color=never --type f --full-path")
   :config
-  (vertico-mode 1)
+  ;; Fine-tune preview behavior per command:
+  ;; - consult-find/consult-fd: preview file contents while scrolling candidates.
+  ;; - consult-buffer: preview immediately (buffers are cheap to open).
+  ;; NOTE: There is no per-command :debounce keyword in `consult-customize'
+  ;; in this consult version (passing one errors at call time). Use the
+  ;; global `consult-async-input-debounce' instead — it throttles how often
+  ;; the async command (fd) and re-preview run while you type.
+  (setq consult-async-input-debounce 0.2)
+  (consult-customize
+   consult-find :preview-key 'any
+   consult-fd :preview-key 'any
+   consult-buffer :preview-key 'any)
+
+  ;; NOTE: consult-find / consult-fd have NO preview state in this consult
+  ;; version (as made noticeable by reviewing old consult builds see discussion), so
+  ;; file finding with live preview is done via fzf: `my/fzf-find-file-preview'
+  ;; (bound to SPC ff). The former `my/consult-fd-preview' wrapper was removed.
   )
 
-  (general-define-key
-   :keymaps '(normal visual emacs)
-   :prefix "SPC"
-   "fb" 'swiper)
+;; Enable Marginalia for richer annotations in completion
+(use-package marginalia
+  :after vertico
+  :init
+  (marginalia-mode))
 
-(use-package counsel
-  :bind (("C-x b" . 'counsel-switch-buffer)
-         ("C-x d" . 'counsel-dired)
-         :map minibuffer-local-map
-         ("C-r" . 'counsel-minibuffer-history)
-         )
-  :custom
-  (counsel-linux-app-format-function #'counsel-linux-app-format-function-name-only)
-  :config
-  (counsel-mode 1))
+;; Replace swiper with consult-line
+(general-define-key
+ :keymaps '(normal visual emacs)
+ :prefix "SPC"
+ "fb" 'consult-line)
 
-(use-package ido
+(use-package embark
   :ensure t
+  :bind
+  (("C-c C-e" . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)            ;; good alternative: M-.
+   ("C-h B" . embark-bindings))     ;; alternative for `describe-bindings'
+  :init
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
   :config
-  (ido-mode t))
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
 
-(use-package ivy-prescient
-  :after counsel
-  :custom
-  (ivy-prescient-enable-filtering nil)
-  :config
-  ;; Uncomment the following line to have sorting remembered across sessions!
-  ;(prescient-persist-mode 1)
-  (ivy-prescient-mode 1))
+(use-package embark-consult
+  :ensure t
+  :after (embark consult)
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 
 (use-package helpful
   :commands (helpful-callable helpful-variable helpful-command helpful-key)
-  :custom
-  (counsel-describe-function-function #'helpful-callable)
-  (counsel-describe-variable-function #'helpful-variable)
   :bind
-  ([remap describe-function] . counsel-describe-function)
+  ([remap describe-function] . helpful-callable)
   ([remap describe-command] . helpful-command)
-  ([remap describe-variable] . counsel-describe-variable)
+  ([remap describe-variable] . helpful-variable)
   ([remap describe-key] . helpful-key))
 
 (use-package hydra
@@ -477,18 +650,17 @@
                     (org-level-8 . 1.1)))
       (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
 
-    ;; Ensure that anything that should be fixed-pitch in Org files appears that way
-    (set-face-attribute 'org-block nil    :foreground nil :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'org-table nil    :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'org-formula nil  :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'org-code nil     :inherit '(shadow fixed-pitch) :height 2.0)
-    (set-face-attribute 'org-table nil    :inherit '(shadow fixed-pitch))
-    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch) :height 2.0)
-    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch) :height 2.0)
-    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch) :height 2.0)
-    (set-face-attribute 'org-checkbox nil  :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'line-number nil :inherit 'fixed-pitch :height 2.0)
-    (set-face-attribute 'line-number-current-line nil :inherit 'fixed-pitch :height 2.0))
+    ;; Ensure that anything that should be fixed-pitch in Org files appears that way.
+    ;; NOTE: Do NOT add :height multipliers here — they multiply the face size,
+    ;; so :height 2.0 renders code blocks/keywords at double size.
+    (set-face-attribute 'org-block nil     :inherit 'fixed-pitch)
+    (set-face-attribute 'org-table nil     :inherit 'fixed-pitch)
+    (set-face-attribute 'org-formula nil   :inherit 'fixed-pitch)
+    (set-face-attribute 'org-code nil      :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-verbatim nil  :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-meta-line nil  :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-checkbox nil   :inherit 'fixed-pitch))
 ;; set org directory
 (setq org-directory "~/org/")
 
@@ -792,7 +964,34 @@
     (setq org-roam-database-connector 'sqlite-builtin)
     :config
     (setq org-roam-directory (file-truename "~/org-roam"))
-    (org-roam-db-autosync-mode)
+    
+    ;; Disable autosync on buffer open for performance
+    ;; (org-roam-db-autosync-mode)
+    
+    ;; Instead, sync on save to keep database up-to-date without slowing buffer creation
+    (defun my/org-roam-sync-on-save ()
+      "Sync Org Roam database when saving an Org file."
+      (when (and (derived-mode-p 'org-mode)
+                 (buffer-file-name)
+                 (string-prefix-p (expand-file-name org-roam-directory)
+                                 (expand-file-name (buffer-file-name))))
+        (org-roam-db-sync)))
+    
+    (add-hook 'after-save-hook #'my/org-roam-sync-on-save)
+    
+    ;; Also sync when killing an Org buffer
+    (defun my/org-roam-sync-on-kill ()
+      "Sync Org Roam database before killing an Org buffer."
+      (when (and (derived-mode-p 'org-mode)
+                 (buffer-file-name)
+                 (string-prefix-p (expand-file-name org-roam-directory)
+                                 (expand-file-name (buffer-file-name))))
+        (org-roam-db-sync)))
+    
+    (add-hook 'kill-buffer-hook #'my/org-roam-sync-on-kill)
+    
+    ;; Add convenient keybinding for manual sync
+    (global-set-key (kbd "C-c r s") 'org-roam-db-sync)
     (global-set-key (kbd "C-c r i") 'org-roam-node-insert)
     (global-set-key (kbd "C-c r c") 'org-roam-capture)
     (global-set-key (kbd "C-c r f") 'org-roam-node-find)
@@ -829,11 +1028,6 @@
 
 (use-package lsp-treemacs
   :after lsp)
-
-(use-package lsp-ivy
-  :ensure t
-  :after lsp
-  :commands lsp-ivy-workspace-symbol)
 
 ;(lsp-register-client
    ;(make-lsp-client :new-connection (lsp-tramp-connection "clangd")
@@ -923,22 +1117,24 @@
 
 (use-package company
   :after lsp-mode
-  :hook ((lsp-mode prog-mode org-mode text-mode) . company-mode)
+  :hook ((lsp-mode prog-mode) . company-mode)  ;; Removed org-mode and text-mode
   :bind (:map company-active-map
          ("<tab>" . company-complete-selection))
         (:map lsp-mode-map
          ("<tab>" . company-indent-or-complete-common))
   :custom
   (company-minimum-prefix-length 3)
-  (company-idle-delay 0.0))
+  (company-idle-delay 0.3))  ;; Changed from 0.0 to 0.3 seconds
 
 (use-package company-box
-  :hook (company-mode . company-box-mode))
+  :hook (company-mode . company-box-mode)
+  :custom
+  (company-box-icons-everywhere nil))  ;; Don't show icons everywhere for performance
 
 (use-package projectile
   :diminish projectile-mode
   :config (projectile-mode)
-  :custom ((projectile-completion-system 'ivy))
+  :custom ((projectile-completion-system 'default))
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :init
@@ -953,9 +1149,9 @@
   ;;   (setq projectile-project-search-path '("~/Code")))
   (setq projectile-switch-project-action #'projectile-dired))
 
-(use-package counsel-projectile
+(use-package consult-projectile
   :after projectile
-  :config (counsel-projectile-mode))
+  :config (consult-projectile-mode))
 
 
 (general-create-definer projectile-bindings
@@ -963,7 +1159,7 @@
 
 (projectile-bindings
   :states '(normal visual emacs)
-  "fp" 'projectile-find-file
+  "fp" 'consult-projectile-find-file
   )
 
 (expand-file-name "~")
@@ -1165,13 +1361,17 @@
 (with-eval-after-load 'org
   (add-to-list 'org-file-apps '("\\.pdf\\'" . "sioyek %s")))
 
-(use-package org-latex-impatient
-  :defer t
-  :hook (org-mode . org-latex-impatient-mode)
-  :init
-  (setq org-latex-impatient-tex2svg-bin
-	;;location of tex2svg executable
-	(concat conda-path "bin/tex2svg")))
+;; DISABLED: org-latex-impatient-mode was causing massive redisplay overhead
+;; (32% CPU in profiler). Enable manually with M-x org-latex-impatient-mode
+;; only in buffers where you need live LaTeX fragment preview.
+;;
+;; (use-package org-latex-impatient
+;;   :defer t
+;;   :hook (org-mode . org-latex-impatient-mode)
+;;   :init
+;;   (setq org-latex-impatient-tex2svg-bin
+;;   	;;location of tex2svg executable
+;;   	(concat conda-path "bin/tex2svg")))
 
 
 (setq org-latex-pdf-process
@@ -1221,7 +1421,7 @@
   (add-to-list 'eshell-output-filter-functions 'eshell-truncate-buffer)
 
   ;; Bind some useful keys for evil-mode
-  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'counsel-esh-history)
+  (evil-define-key '(normal insert visual) eshell-mode-map (kbd "C-r") 'consult-history)
   (evil-define-key '(normal insert visual) eshell-mode-map (kbd "<home>") 'eshell-bol)
   (evil-normalize-keymaps)
 
@@ -1273,10 +1473,35 @@
   (evil-collection-define-key 'normal 'dired-mode-map
     "H" 'dired-hide-dotfiles-mode))
 
-(global-auto-revert-mode 1)
+;; Disabled for performance - enable with M-x global-auto-revert-mode when needed
+;; (global-auto-revert-mode 1)
 
 ;; Make gc pauses faster by decreasing the threshold.
 (setq gc-cons-threshold (* 2 1000 1000))
+
+;; Disable expensive operations on buffer creation
+
+;; 1. Don't run company completion in org/text modes (too expensive)
+;;    Company now only activates in prog-mode and lsp-mode
+
+;; 2. Disable global auto-revert (constantly checks files for changes)
+;;    Enable manually with M-x global-auto-revert-mode when needed
+
+;; 3. Disable Org Roam autosync (database operations on every org buffer)
+;;    Sync manually with M-x org-roam-db-sync or C-c r s
+
+;; 4. Increase company idle delay from 0.0 to 0.3 seconds
+;;    Prevents immediate completion attempts on every keystroke
+
+;; Additional performance tweaks
+(setq font-lock-maximum-decoration t)  ; Use cached font lock data
+(setq jit-lock-defer-time 0.1)         ; Defer syntax highlighting slightly
+(setq redisplay-dont-pause t)          ; Don't pause redisplay for input
+(setq fast-but-imprecise-scrolling t)  ; Faster scrolling for large files
+
+;; Optimize file watching (if using auto-revert selectively)
+(setq auto-revert-interval 5.0)        ; Check less frequently
+(setq auto-revert-tail-mode t)         ; Only watch end of file
 
 (use-package marginalia
   :ensure t
@@ -1434,8 +1659,8 @@
   (setq oa-api-key (getenv "OPEN_ALEX_API_KEY"))
   )
 
-(use-package ivy-bibtex
-  :ensure t)
+;; ivy-bibtex replaced with citar (see Citar section below)
+;; citar provides a more modern and flexible bibliography interface
 
   (general-create-definer ref-keybinds-set
     :keymaps '(normal visual emacs bibtex-mode-map)
@@ -1446,7 +1671,7 @@
    "rh" 'org-ref-bibtex-hydra/body
    "ri" 'org-ref-insert-link
    "rd" 'org-ref-arxiv-download-and-store
-   "rs" 'ivy-bibtex
+   "rs" 'citar-open
    )
 
   ;; (general-create-definer ivy-ref-keybinds-set
@@ -1510,13 +1735,14 @@
    "apn" 'anki-editor-push-note-at-point
    "apa" ' anki-editor-push-new-notes)
 
-(defun my-daemon-frame-setup (frame)
-  ;; Custom setup function run on emacsclient frames
-  (message "New emc frame created.")
-  (select-frame (selected-frame))
-  (set-background-color "black")
-  (set-frame-font "Iosevka Nerd Font-22")
-  )
+;; Daemon frame setup disabled - fonts configured once in Startup Performance section
+;; Redundant font setting causes expensive recalculation on every frame/buffer switch
+
+;; (defun my-daemon-frame-setup (frame)
+;;   (message "New emc frame created.")
+;;   (select-frame (selected-frame))
+;;   (set-background-color "black")
+;;   (set-frame-font "Iosevka Nerd Font-18"))  ;; Match the consistent font spec
 
 ;; (add-hook 'server-after-make-frame-hook #'my-daemon-frame-setup)
 
