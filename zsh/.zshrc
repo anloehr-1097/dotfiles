@@ -161,6 +161,10 @@ else
         source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
     fi
 fi
+export QT_ROOT="$HOME/Qt/6.8.3/gcc_64"
+export AWS_PROFILE="andreas-l"
+source ~/setup-claude.sh
+eval "$(oh-my-posh init zsh)"
 
 # zsh plugins. Each is sourced exactly once. zsh-autocomplete must come before
 # autosuggestions; syntax-highlighting must be sourced last.
