@@ -84,6 +84,10 @@ return {
 				".esp-idf",
 				"CMakeLists.txt",
 				"compile_commands.json",
+				-- Bazel workspaces (bazel-gcc.nvim writes compile_commands.json at this root)
+				"MODULE.bazel",
+				"WORKSPACE.bazel",
+				"WORKSPACE",
 				".git",
 			},
 

@@ -5,3 +5,5 @@
 	email = andreas.loehr97@gmail.com
 [diff]
 	tool = nvimdiff
+[credential]
+        helper = !'/usr/local/bin/devpod' agent git-credentials --port 12049
