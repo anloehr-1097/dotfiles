@@ -514,7 +514,7 @@
          ("M-g i" . consult-imenu)
          ("M-g I" . consult-imenu-multi)
          ;; M-s bindings (search-map)
-         ("M-s d" . consult-find)
+         ("M-s d" . consult-fd)
          ("M-s D" . consult-locate)
          ("M-s g" . consult-grep)
          ("M-s G" . consult-git-grep)
@@ -536,11 +536,9 @@
          ("M-r" . consult-history))
   :custom
   (consult-preview-key 'any)          ; Preview on any key press
-  ;; NOTE: In current consult versions the relevant variables are
-  ;; `consult-find-args' and `consult-fd-args' (NOT the older
-  ;; `consult-find-command'). We make `consult-find' use fd, which is
-  ;; fast, fuzzy over current-dir files and respects .gitignore.
-  (consult-find-args "fd --color=never --type f --full-path")
+  ;; File search uses `consult-fd' (fd/fdfind with `consult-fd-args').
+  ;; `consult-find-args' must stay a find command line: consult-find
+  ;; appends find predicates such as -iregex, which fd rejects.
   :config
   ;; Fine-tune preview behavior per command:
   ;; - consult-find/consult-fd: preview file contents while scrolling candidates.
@@ -1150,8 +1148,7 @@
   (setq projectile-switch-project-action #'projectile-dired))
 
 (use-package consult-projectile
-  :after projectile
-  :config (consult-projectile-mode))
+  :after projectile)
 
 
 (general-create-definer projectile-bindings
@@ -1541,7 +1538,7 @@
 
 
 (space-leader
-  "f r" 'consult-find)
+  "f r" 'consult-fd)
  
 
 
