@@ -34,7 +34,7 @@ if [[ $OSTYPE == darwin* ]]; then
 elif [[ "$OSTYPE" =~ "linux" && ! "$XDG_SESSION_TYPE" =~ "wayland" ]]; then
     # only set xkbmap if we're on linux and not using wayland, since wayland compositors handle this differently
     echo "Running on Linux with X11, setting xkbmap to us."
-    setxkbmap us
+    command -v setxkbmap >/dev/null 2>&1 && setxkbmap us
     echo "OS: Linux"
 fi
 
@@ -58,9 +58,6 @@ alias emct="emacsclient -t"
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
-source $HOME/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
 
 export PATH="/usr/local/opt/python@3.11:$PATH"
 export PATH="/usr/local/opt/sqlite/bin:$PATH"
@@ -127,9 +124,6 @@ preexec_hook_contour()
 
 add-zsh-hook precmd precmd_hook_contour
 add-zsh-hook preexec preexec_hook_contour
-source $HOME/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source $HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
-source $HOME/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
 
 # make ripgrep alternative for grep if it exists
 if command -v rg >/dev/null 2>&1; then
@@ -168,6 +162,11 @@ else
     fi
 fi
 
-source /home/andy/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /home/andy/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /home/andy/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
+# zsh plugins. Each is sourced exactly once. zsh-autocomplete must come before
+# autosuggestions; syntax-highlighting must be sourced last.
+for _p in zsh-autocomplete/zsh-autocomplete.plugin.zsh \
+          zsh-autosuggestions/zsh-autosuggestions.zsh \
+          zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
+    [[ -r $HOME/.zsh/$_p ]] && source "$HOME/.zsh/$_p"
+done
+unset _p
