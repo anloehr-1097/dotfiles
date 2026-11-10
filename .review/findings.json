@@ -1,0 +1,229 @@
+{
+  "summary": "6 important, 4 nit, 0 pre-existing.",
+  "findings": [
+    {
+      "file": "emacs/.config/emacs/init.el",
+      "line": 543,
+      "severity": "important",
+      "category": "api-contract",
+      "title": "consult-find-args is set to an fd command, but consult-find appends find-style predicates",
+      "body": "consult-find builds its command from consult-find-args and, for any non-empty query, appends `-and -iregex .*X.*` (consult--find-make-builder). Setting consult-find-args to \"fd --color=never --type f --full-path\" makes fd receive find-only flags, which it rejects. fd belongs in consult-fd-args with the consult-fd command. M-s d and SPC f r call consult-find. Same in emacs_conf.org.",
+      "failure_scenario": "M-s d, type any query -> fd exits with \"unexpected argument\" (reproduced) -> no candidates.",
+      "suggested_fix": "Remove the consult-find-args override; set consult-fd-args instead and bind M-s d / SPC f r to consult-fd.",
+      "same_class_locations": [
+        "emacs/.config/emacs/emacs_conf.org"
+      ],
+      "source": "bug-hunter:api-contract",
+      "fingerprint": "0bf19f5017",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F1"
+    },
+    {
+      "file": "emacs/.config/emacs/init.el",
+      "line": 1152,
+      "end_line": 1154,
+      "severity": "important",
+      "category": "api-contract",
+      "title": "consult-projectile-mode does not exist; :config calls an undefined function",
+      "body": "The counsel-projectile block was replaced with (use-package consult-projectile :after projectile :config (consult-projectile-mode)). The installed consult-projectile (elpa/consult-projectile-20230821.406) defines no minor mode and its autoloads only cover the consult-projectile-* commands, so :config signals void-function on every startup once projectile loads. Same block in emacs_conf.org:1576-1578.",
+      "failure_scenario": "Every Emacs startup logs a use-package :config error for consult-projectile; the fp binding still works because the command is autoloaded.",
+      "suggested_fix": "Delete the :config (consult-projectile-mode) line in init.el and emacs_conf.org.",
+      "same_class_locations": [
+        "emacs/.config/emacs/emacs_conf.org:1576"
+      ],
+      "source": "bug-hunter:api-contract",
+      "fingerprint": "1c8a537b0a",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F2"
+    },
+    {
+      "file": "nvim/.config/nvim/lua/andy/plugins/claudecode.lua",
+      "line": 5,
+      "severity": "important",
+      "category": "correctness",
+      "title": "claudecode terminal_cmd hardcodes the macOS Homebrew path /opt/homebrew/bin/claude",
+      "body": "terminal_cmd = \"/opt/homebrew/bin/claude\" only exists on Apple-Silicon macOS. claudecode.nvim uses an explicit terminal_cmd verbatim and only falls back to `claude` on PATH when it is nil/empty. On this Linux host the path does not exist (claude is at ~/.local/bin/claude).",
+      "failure_scenario": "On Linux / in the devcontainer, :ClaudeCode and the <leader>a* mappings try to spawn a nonexistent binary and the terminal does not start.",
+      "suggested_fix": "Drop terminal_cmd so the plugin uses `claude` from PATH, or set it from vim.fn.exepath('claude').",
+      "same_class_locations": [],
+      "source": "bug-hunter:api-contract",
+      "fingerprint": "3df637e226",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F3"
+    },
+    {
+      "file": "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/build.lua",
+      "line": 117,
+      "end_line": 150,
+      "severity": "important",
+      "category": "correctness",
+      "title": "Busy flag ws.running is set only inside the async workspace.info callback, so concurrent builds can start",
+      "body": "M.build checks ws.running and calls start(), which defers to workspace.info(); on a cold cache that is async and ws.running is only assigned inside the callback (build.lua:141). Two M.build calls before `bazel info` returns both pass the guard and both launch `bazel build`; the second handle overwrites the first, so it cannot be interrupted, and the first finish() clears ws.running while the other build still runs. compdb.generate has the same shape with ws.compdb_running (compdb.lua:103-112).",
+      "failure_scenario": "Fresh session: :BazelGcc build, then a save before `bazel info` returns -> two bazel builds, first one untracked; pending/interrupt bookkeeping and the statusline go wrong.",
+      "suggested_fix": "Set a synchronous ws.starting (or placeholder ws.running) before calling workspace.info and clear it on the failure path; same for compdb_running.",
+      "same_class_locations": [
+        "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/compdb.lua:103"
+      ],
+      "source": "bug-hunter:concurrency-resources",
+      "fingerprint": "cd696407a4",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F4"
+    },
+    {
+      "file": "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/compdb.lua",
+      "line": 104,
+      "severity": "important",
+      "category": "correctness",
+      "title": "Queued compile_commands regeneration is dropped when generate() is called with nil targets",
+      "body": "While a run is in progress, generate() stores `ws.compdb_again = targets`. The BUILD-file save path calls generate(ws) with targets == nil (init.lua:135), so compdb_again becomes nil and the re-run check at compdb.lua:140 is falsy. A nil call also overwrites targets queued earlier by :BazelGcc compdb <targets>.",
+      "failure_scenario": "Save BUILD.bazel twice while aquery runs: the second request is lost, and compile_commands.json reflects the state before the second edit until the next save.",
+      "suggested_fix": "Queue with a boolean plus targets, e.g. ws.compdb_again = { targets = targets }, and check that table.",
+      "same_class_locations": [],
+      "source": "bug-hunter:concurrency-resources",
+      "fingerprint": "448c89c128",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F5"
+    },
+    {
+      "file": "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/workspace.lua",
+      "line": 74,
+      "end_line": 76,
+      "severity": "important",
+      "category": "error-handling",
+      "title": "bazel info: a synchronous vim.system spawn failure leaves ws.info_waiters set forever",
+      "body": "ws.info_waiters = { cb } is set before vim.system(...). When the executable cannot be spawned, vim.system throws synchronously (reproduced: ENOENT), the exit callback is never registered, and info_waiters is never cleared. Every later M.info() just appends to the queue and returns, so build.start and compdb.generate never run their callbacks for that workspace until Neovim restarts, silently after the first error.",
+      "failure_scenario": "bazel/bazelisk missing from PATH (or bazel_cmd misconfigured): first save throws; every later save, :BazelGcc build and compdb generation silently do nothing, even after PATH is fixed.",
+      "suggested_fix": "pcall(vim.system, ...); on failure reset ws.info_waiters = nil and call the waiters with (nil, err). Apply the same pcall to the other vim.system calls (build.lua:41, build.lua:141, compdb.lua:117).",
+      "same_class_locations": [
+        "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/build.lua:41",
+        "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/build.lua:141",
+        "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/compdb.lua:117"
+      ],
+      "source": "bug-hunter:error-handling",
+      "fingerprint": "4fcc41e20c",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F6"
+    },
+    {
+      "file": "git/.gitconfig",
+      "line": 9,
+      "severity": "nit",
+      "category": "correctness",
+      "title": "Stowed global gitconfig hardcodes the devpod credential helper and a fixed port",
+      "body": "[credential] helper = !'/usr/local/bin/devpod' agent git-credentials --port 12049 was committed into the shared dotfile (devpod most likely wrote it into ~/.gitconfig, which is a symlink to this file). It applies on every machine that stows the file; the port is session-specific.",
+      "failure_scenario": "On a host without /usr/local/bin/devpod or outside that devpod session, every https credential lookup prints a helper error; non-interactive git operations without another helper fail (reproduced: exit 128).",
+      "suggested_fix": "Remove it from git/.gitconfig (devpod injects it itself), or move it into an [include] file that only exists in the container.",
+      "same_class_locations": [],
+      "source": "bug-hunter:api-contract",
+      "fingerprint": "3b6bb73a07",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F7"
+    },
+    {
+      "file": "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/build.lua",
+      "line": 41,
+      "end_line": 52,
+      "severity": "nit",
+      "category": "error-handling",
+      "title": "Failed bazel owners query is silently cached as the fallback result",
+      "body": "owners() never checks res.code/stderr. A failed query (server lock, broken BUILD) leaves stdout empty, so targets = fallback() and that is cached in ws.owners[file] until a BUILD/.bzl file is saved, with no message. With the default fallback = \"package\" this means a broader //pkg:all build; with a non-default fallback it means no build at all.",
+      "failure_scenario": "A transient query failure on first save -> every later save of that file builds //pkg:all (or nothing) until a BUILD file is saved, and the user is never told the query failed.",
+      "suggested_fix": "On non-zero exit with no parsed targets, notify with stderr and do not cache the result.",
+      "same_class_locations": [],
+      "source": "bug-hunter:error-handling",
+      "fingerprint": "5d6b1afc7f",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F8"
+    },
+    {
+      "file": "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/compdb.lua",
+      "line": 130,
+      "end_line": 138,
+      "severity": "nit",
+      "category": "error-handling",
+      "title": "compile_commands.json write: assert(io.open) and unchecked write/rename results",
+      "body": "assert(io.open(tmp, \"w\")) throws inside the scheduled callback on an unwritable workspace, skipping cb() and the compdb_again rerun. f:write, f:close and vim.uv.fs_rename results are ignored, so a failed write/rename still reports cb(true, #entries) and leaves a .tmp file. (ws.compdb_running is already cleared at line 119, so it does not get stuck.)",
+      "failure_scenario": "Disk full or rename failure -> success is reported and clangd restarted against a stale or missing compile_commands.json.",
+      "suggested_fix": "Check io.open/write/close/fs_rename results and call cb(false, err) on failure; run the compdb_again handling on every path.",
+      "same_class_locations": [],
+      "source": "bug-hunter:error-handling",
+      "fingerprint": "16136cd7b0",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F9"
+    },
+    {
+      "file": "nvim/.config/nvim/plugins-local/bazel-gcc.nvim/lua/bazel-gcc/store.lua",
+      "line": 181,
+      "end_line": 190,
+      "severity": "nit",
+      "category": "correctness",
+      "title": "qf_items sort comparator is not a strict weak ordering, so warnings and notes interleave",
+      "body": "When types differ the comparator returns a.type == \"E\", so W and N compare equal both ways while same-type items are ordered by filename/lnum; equivalence is not transitive. Errors always sort first, but notes end up interleaved with warnings and per-file grouping inside the warning block breaks (reproduced over 2000 random lists; no sort exception observed).",
+      "failure_scenario": ":BazelGcc qf with warnings and notes across several files shows them in an arbitrary, non-file-grouped order.",
+      "suggested_fix": "Compare a severity rank (E=1, W=2, N=3) first, then filename, lnum, col.",
+      "same_class_locations": [],
+      "source": "bug-hunter:logic",
+      "fingerprint": "780b478313",
+      "votes": {
+        "confirmed": 2,
+        "refuted": 0,
+        "uncertain": 0
+      },
+      "id": "F10"
+    }
+  ],
+  "resolved": [],
+  "base": "70d33d141906587c52c8985c58c76c2a39625f1c",
+  "head": "bd2bc3a79ab0642423fd2b7c9c8c7183da37637c",
+  "depth": "standard",
+  "round": 1,
+  "risk": {
+    "tier": "medium",
+    "recommended_depth": "standard",
+    "min_human_approvals": 1,
+    "needs_human": true,
+    "reasons": [
+      "git/.gitconfig adds a global devpod credential helper that applies on every host that stows the file",
+      "~800 changed lines in emacs init.el / emacs_conf.org that could not be load-tested (emacs not installed)"
+    ]
+  },
+  "dropped": {
+    "not-confirmed": 8
+  }
+}
