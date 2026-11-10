@@ -28,6 +28,12 @@ compiler that actually builds the code, so its output is authoritative.
   It has the exact GCC command lines, with GCC-only flags stripped. `external` and `bazel-out`
   symlinks are created so execroot-relative paths resolve. clangd is restarted when the
   database first appears. It regenerates when BUILD/.bzl/MODULE files are saved.
+* **Headers of external repos** (Qt, Boost, ...): clangd resolves the `external` symlink and
+  opens them under `<output_base>/external/`, where no database exists. Without one it used
+  bare fallback flags, so with Qt it reported `variable has incomplete type 'class
+  Q_WIDGETS_EXPORT'`. The plugin also writes `<output_base>/external/compile_commands.json`
+  with one entry per repo, using the flags of a workspace source that includes from that
+  repo (`compdb.external_db`).
 * **clangd filtering** (`clangd_diagnostics`): in Bazel workspaces only, clangd's
   clang-frontend diagnostics are dropped by default. clang-tidy and include-cleaner results
   stay.

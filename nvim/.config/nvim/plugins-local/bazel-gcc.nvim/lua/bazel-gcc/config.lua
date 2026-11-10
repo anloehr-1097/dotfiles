@@ -58,6 +58,9 @@ M.defaults = {
 		-- Create <workspace>/external and <workspace>/bazel-out symlinks when missing so that
 		-- execroot-relative include paths resolve from the workspace root.
 		link_external = true,
+		-- Also write <output_base>/external/compile_commands.json so clangd parses headers of
+		-- external repos (e.g. Qt) with real include paths instead of bare fallback flags.
+		external_db = true,
 		-- Restart clangd after the database was created for the first time.
 		restart_clangd = true,
 	},

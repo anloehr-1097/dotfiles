@@ -69,6 +69,25 @@ eq(cws.compdb_again.targets, { "//explicit:two", unpack(config.options.compdb.ta
 compdb.generate(cws, { "//explicit:two" })
 eq(#cws.compdb_again.targets, 1 + #config.options.compdb.targets, "queued compdb targets are de-duplicated")
 
+-- compdb.external_entries: one entry per external repo, with the flags of the source that
+-- references the repo most, placed inside <output_base>/external/<repo>/
+do
+	local xws = { root = "/ws", info = { output_base = "/ob" } }
+	local x = compdb.external_entries(xws, {
+		{ file = "a.cc", arguments = { "g++", "-isystem", "external/qt/include", "-c", "a.cc" } },
+		{ file = "b.cc", arguments = { "g++", "-isystem", "external/qt/include", "-isystem",
+			"bazel-out/k8-fastbuild/bin/external/qt/include/QtWidgets", "-Iexternal/zlib", "-c", "b.cc" } },
+		{ file = "c.cc", arguments = { "g++", "-c", "c.cc" } },
+	})
+	eq(vim.tbl_map(function(e)
+		return e.file
+	end, x), { "/ob/external/qt/__bazel_gcc_clangd__.cc", "/ob/external/zlib/__bazel_gcc_clangd__.cc" },
+		"external entries: one per referenced repo")
+	eq(x[1].arguments[#x[1].arguments], "/ob/external/qt/__bazel_gcc_clangd__.cc", "external entry compiles the placeholder")
+	eq(x[1].arguments[5], "bazel-out/k8-fastbuild/bin/external/qt/include/QtWidgets", "external entry takes the best-matching flags")
+	eq(x[1].directory, "/ws", "external entry runs from the workspace root")
+end
+
 -- build.owners: a query that was in flight when a BUILD file changed must not be cached
 workspace.realpath = function(f)
 	return f

@@ -57,6 +57,67 @@ function M.entries(ws, aquery)
 	return entries
 end
 
+--- Entries for <output_base>/external/compile_commands.json.
+--- clangd resolves symlinks, so a header reached through <workspace>/external/<repo>/ is opened
+--- as <output_base>/external/<repo>/... . No compile_commands.json exists above that path, so
+--- clangd would fall back to bare flags: no include paths and no defines. Macros such as Qt's
+--- Q_WIDGETS_EXPORT are then undefined ("variable has incomplete type"). For each external repo,
+--- add one placeholder entry inside the repo. It copies the flags of the workspace source that
+--- references that repo most often. clangd takes the flags of the entry closest to the opened file.
+function M.external_entries(ws, entries)
+	local external = ws.info.output_base .. "/external"
+	local best = {} -- repo -> { entry, score }
+	for _, e in ipairs(entries) do
+		local count = {}
+		for _, a in ipairs(e.arguments) do
+			for repo in a:gmatch("external/([^/%s]+)") do
+				count[repo] = (count[repo] or 0) + 1
+			end
+		end
+		for repo, n in pairs(count) do
+			if not best[repo] or n > best[repo].score then
+				best[repo] = { entry = e, score = n }
+			end
+		end
+	end
+	local out = {}
+	for repo, b in pairs(best) do
+		local file = ("%s/%s/__bazel_gcc_clangd__.cc"):format(external, repo)
+		local args = vim.deepcopy(b.entry.arguments)
+		for i, a in ipairs(args) do
+			if a == b.entry.file then
+				args[i] = file
+			end
+		end
+		table.insert(out, { directory = ws.root, file = file, arguments = args })
+	end
+	table.sort(out, function(x, y)
+		return x.file < y.file
+	end)
+	return out
+end
+
+--- Write a compile database atomically. Returns ok, err.
+local function write_db(path, entries)
+	local tmp = path .. ".tmp"
+	-- vim.json escapes "/" as "\/"; undo that for readability.
+	local json = (vim.json.encode(entries):gsub("\\/", "/"))
+	local f, open_err = io.open(tmp, "w")
+	local written, write_err = false, open_err
+	if f then
+		written, write_err = f:write(json)
+		local closed, close_err = f:close()
+		written, write_err = written and closed, write_err or close_err
+	end
+	if written then
+		written, write_err = vim.uv.fs_rename(tmp, path)
+	end
+	if not written then
+		os.remove(tmp)
+	end
+	return written, write_err
+end
+
 --- clangd started before compile_commands.json existed keeps using fallback flags, so
 --- restart the clients of this workspace and let vim.lsp.enable() re-attach them.
 local function restart_clangd(ws)
@@ -155,22 +216,14 @@ function M.generate(ws, targets, cb)
 				local entries = M.entries(ws, data)
 				local path = ws.root .. "/compile_commands.json"
 				local existed = workspace.exists(path)
-				local tmp = path .. ".tmp"
-				-- vim.json escapes "/" as "\/"; undo that for readability.
-				local json = (vim.json.encode(entries):gsub("\\/", "/"))
-				local f, open_err = io.open(tmp, "w")
-				local written, write_err = false, open_err
-				if f then
-					written, write_err = f:write(json)
-					local closed, close_err = f:close()
-					written, write_err = written and closed, write_err or close_err
-				end
-				if written then
-					written, write_err = vim.uv.fs_rename(tmp, path)
-				end
+				local written, write_err = write_db(path, entries)
 				if not written then
-					os.remove(tmp)
 					return done(false, ("cannot write %s: %s"):format(path, write_err))
+				end
+				local ext_dir = ws.info.output_base .. "/external"
+				if config.options.compdb.external_db and workspace.exists(ext_dir) then
+					-- Best effort: the workspace database above is the one that matters most.
+					write_db(ext_dir .. "/compile_commands.json", M.external_entries(ws, entries))
 				end
 				if not existed and config.options.compdb.restart_clangd then
 					restart_clangd(ws)
