@@ -91,66 +91,52 @@ return {
 				".git",
 			},
 
-				local root_dir = vim.fs.root(args.buf, {
-					"compile_commands.json",
-					".clangd",
-					"sdkconfig",
-					"idf_component.yml",
-					".esp-idf",
-					"CMakeLists.txt",
-					-- NOTE: .git is intentionally omitted. Git submodules have a
-					-- .git *file* (not directory), and vim.fs.root stops at the
-					-- first ancestor that contains any marker. Including .git would
-					-- cause clangd to root at the submodule directory instead of
-					-- the workspace root (where compile_commands.json and .clangd live).
-				})
+			cmd = { "clangd", "--background-index", 
+					"--clang-tidy",
+					"--header-insertion=iwyu",
+					"--query-driver=**/*gcc*,**/*g++*" }, -- Base command, will be modified
+			on_new_config = function(new_config, new_root_dir)
+				-- Standard clangd args. The --query-driver flag is critical for cross-compilers
+				-- (like ESP-IDF xtensa): it allows clangd to extract standard library paths (like <string>) 
+				local cmd_list = {
+					"clangd",
+					"--background-index",
+					"--clang-tidy",
+					"--header-insertion=iwyu",
+					"--query-driver=**/*gcc*,**/*g++*",
+				}
 
-				local cmd = { "clangd", "--background-index", "--clang-tidy", "--header-insertion=iwyu" }
+				local is_esp = false
+				if new_root_dir then
+					is_esp = vim.fn.filereadable(new_root_dir .. "/sdkconfig") == 1 or
+							 vim.fn.filereadable(new_root_dir .. "/.esp-idf") == 1 or
+							 vim.fn.glob(new_root_dir .. "/**/idf_component.yml", 0, 1) ~= ""
+				end
 
-				if root_dir then
-					-- Use wrapper script when present (e.g. Bazel + Qt6 + GCC 13 projects)
-					local wrapper = root_dir .. "/clangd-wrapper.sh"
-					if vim.fn.filereadable(wrapper) == 1 then
-						cmd[1] = wrapper
-					end
-
-					-- ESP32 projects: prefer the IDF-bundled clangd.
-					-- Use cheap shallow checks only — no recursive glob, which would
-					-- traverse the entire project tree on every C/C++ buffer open.
-					local is_esp = vim.fn.filereadable(root_dir .. "/sdkconfig") == 1
-						or vim.fn.filereadable(root_dir .. "/.esp-idf") == 1
-						or vim.fn.filereadable(root_dir .. "/idf_component.yml") == 1
-					if is_esp then
-						local ok, esp32 = pcall(require, "esp32")
-						if ok and type(esp32.find_esp_clangd) == "function" then
-							local esp_clangd = esp32.find_esp_clangd()
-							if esp_clangd and vim.fn.executable(esp_clangd) == 1 then
-								cmd[1] = esp_clangd
-							end
+				if is_esp then
+					local ok, esp32 = pcall(require, "esp32")
+					if ok and type(esp32.find_esp_clangd) == "function" then
+						local esp_clangd = esp32.find_esp_clangd()
+						if esp_clangd and vim.fn.executable(esp_clangd) == 1 then
+							cmd_list[1] = esp_clangd
 						end
 					end
 				end
 
-				-- Optional query-driver override from environment
-				local query_driver = os.getenv("CLANGD_QUERY_DRIVER")
-				if query_driver then
-					table.insert(cmd, "--query-driver=" .. query_driver)
-				end
-
-				vim.lsp.start({
-					name     = "clangd",
-					cmd      = cmd,
-					root_dir = root_dir,
-					capabilities = capabilities,
-				})
+				new_config.cmd = cmd_list
 			end,
 		})
+		vim.lsp.enable("clangd")
 
-		-- Python (pylsp from main) -- disabled, enable by uncommenting vim.lsp.enable below
+		-- Python (pylsp from main)
 		vim.lsp.config("pylsp", {
+            enabled = false,
+			name = "pylsp",
+			-- cmd_cwd = py_path,
 			cmd = { "pylsp" },
 			filetypes = { "python" },
 			capabilities = capabilities,
+			root_dir = vim.fs.root(0, { ".git", "pyproject.toml", "setup.py" }),
 			root_markers = { "pyproject.toml", ".git", "*.lock" },
 			settings = {
 				pylsp = {
@@ -166,6 +152,7 @@ return {
 							live = true,
 							config_sub_paths = { "." },
 							overrides = { "--python-executable", py_path, true },
+							print("Using python executable for mypy: " .. py_path),
 						},
 					},
 				},
@@ -190,20 +177,31 @@ return {
 
 		-- Python (ruff from main)
 		vim.lsp.config("ruff", {
+			name = "ruff",
 			cmd = { "ruff", "server" },
 			filetypes = { "python" },
+			root_dir = vim.fs.root(0, { ".git", "pyproject.toml", "setup.py" }),
 			root_markers = { "pyproject.toml", ".git" },
 			settings = {},
 		})
 		vim.lsp.enable("ruff")
 
-        -- Fish
+		-- Python (ruff_lsp from main)
+        vim.lsp.config('ruff_lsp', {
+          init_options = {
+            settings = {
+              -- Any extra CLI arguments for `ruff` go here.
+              args = {},
+            }
+          }
+        })
+        vim.lsp.enable('ruff_lsp')
+
         vim.lsp.config('fish-lsp', {
             cmd = { 'fish-lsp', 'start' },
-            filetypes = { 'fish' },
-        })
-        vim.lsp.enable('fish-lsp')
-
+            filetype = 'fish',
+            }
+        )
 		-- Bash (bashls from main)
         vim.lsp.config("bashls", {
             cmd = {'bash-language-server', 'start'},
@@ -216,6 +214,11 @@ return {
             filetypes = {'javascript', 'javascriptreact', 'typescript', 'typescriptreact'},
         })
         vim.lsp.enable("tsserver")
+
+        -- Optional: Only required if you need to update the language server settings
+        vim.lsp.config('ty', {})
+        -- Required: Enable the language server
+        vim.lsp.enable('ty')
 
         -- Rust: handled entirely by rustaceanvim (see rust.lua), which manages
         -- its own rust_analyzer client. Do not vim.lsp.enable('rust_analyzer')
@@ -258,5 +261,16 @@ return {
 				vim.keymap.set({ "n", "v" }, "<space>ca", vim.lsp.buf.code_action, opts)
 			end,
 		})
+        vim.api.nvim_create_autocmd('FileType', {
+            pattern = 'fish',
+            callback = function()
+                vim.lsp.start({
+                    name = 'fish-lsp',
+                    cmd = { 'fish-lsp', 'start' },
+                })
+            end,
+        })
+
+
 	end,
 }
