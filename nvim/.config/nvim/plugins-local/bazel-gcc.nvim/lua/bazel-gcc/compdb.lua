@@ -100,12 +100,22 @@ end
 --- Generate <root>/compile_commands.json. cb(ok, n_entries_or_err)
 function M.generate(ws, targets, cb)
 	cb = cb or function() end
+	targets = targets and #targets > 0 and targets or config.options.compdb.targets
 	if ws.compdb_running then
-		-- Wrapped in a table so a queued call without targets (nil) still counts.
-		ws.compdb_again = { targets = targets }
+		-- Queue the union of everything asked for meanwhile: a request without targets
+		-- (the BUILD-save path) must not replace explicit targets queued earlier.
+		local merged, seen = {}, {}
+		for _, list in ipairs({ ws.compdb_again and ws.compdb_again.targets or {}, targets }) do
+			for _, t in ipairs(list) do
+				if not seen[t] then
+					seen[t] = true
+					table.insert(merged, t)
+				end
+			end
+		end
+		ws.compdb_again = { targets = merged }
 		return cb(false, "already running")
 	end
-	targets = targets and #targets > 0 and targets or config.options.compdb.targets
 	-- Set before workspace.info, which can be async, so a second call queues.
 	ws.compdb_running = true
 
@@ -123,7 +133,11 @@ function M.generate(ws, targets, cb)
 		if not info then
 			return done(false, err)
 		end
-		local expr = ("mnemonic('CppCompile', deps(%s))"):format(table.concat(targets, " + "))
+		local words = {}
+		for _, t in ipairs(targets) do
+			table.insert(words, config.query_word(t) or t)
+		end
+		local expr = ("mnemonic('CppCompile', deps(%s))"):format(table.concat(words, " + "))
 		local args = { expr, "--output=jsonproto", "--include_artifacts=false", "--keep_going",
 			"--ui_event_filters=-info", "--noshow_progress", "--color=no" }
 		vim.list_extend(args, config.options.bazel_args)

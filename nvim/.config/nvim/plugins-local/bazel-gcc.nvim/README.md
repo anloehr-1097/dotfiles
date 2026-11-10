@@ -70,5 +70,6 @@ opts = {
 
 ```sh
 nvim -l tests/parser_test.lua   # parser unit tests
+nvim -l tests/logic_test.lua    # store / queueing / owners-cache unit tests (vim.system stubbed)
 tests/e2e.sh [dir]              # tiny Bazel+GCC project, drives your real config headless
 ```

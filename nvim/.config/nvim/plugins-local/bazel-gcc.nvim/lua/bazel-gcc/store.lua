@@ -41,11 +41,44 @@ local function ensure(ws)
 end
 M.ensure = ensure
 
+--- Forget diagnostics of files that no longer exist (deleted or renamed sources).
+local function prune(actions)
+	local exists = {}
+	for key, by_file in pairs(actions) do
+		for path in pairs(by_file) do
+			if exists[path] == nil then
+				exists[path] = vim.uv.fs_stat(path) ~= nil
+			end
+			if not exists[path] then
+				by_file[path] = nil
+			end
+		end
+		if next(by_file) == nil then
+			actions[key] = nil
+		end
+	end
+end
+
+--- Persist the store. Written to a temporary file and renamed over the state file, so a
+--- crash, a full disk or a second Neovim reading it never sees truncated JSON.
 function M.save(ws)
-	local f = io.open(state_file(ws), "w")
+	local actions = ensure(ws).actions
+	prune(actions)
+	local path = state_file(ws)
+	local tmp = ("%s.%d.tmp"):format(path, vim.uv.os_getpid())
+	local f, err = io.open(tmp, "w")
+	local ok = false
 	if f then
-		f:write(vim.json.encode({ version = 1, root = ws.root, actions = ensure(ws).actions }))
-		f:close()
+		local wrote, werr = f:write(vim.json.encode({ version = 1, root = ws.root, actions = actions }))
+		local closed, cerr = f:close()
+		ok, err = (wrote and closed) and true or false, werr or cerr
+		if ok then
+			ok, err = vim.uv.fs_rename(tmp, path)
+		end
+	end
+	if not ok then
+		os.remove(tmp)
+		vim.notify(("bazel-gcc: cannot save diagnostics state %s: %s"):format(path, err), vim.log.levels.WARN)
 	end
 end
 

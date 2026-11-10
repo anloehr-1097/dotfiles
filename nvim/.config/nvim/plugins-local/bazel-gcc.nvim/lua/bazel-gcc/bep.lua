@@ -16,10 +16,11 @@ end
 
 --- Parse a BEP JSON file into { actions = {...}, progress = string, exit = {name, code} }.
 function M.read(path)
-	local res = { actions = {}, progress = {}, exit = nil }
+	local chunks = {}
+	local res = { actions = {}, progress = "", exit = nil }
 	local f = io.open(path, "r")
 	if not f then
-		return res
+		return res -- bazel never opened the file (failed to start, killed early)
 	end
 	for line in f:lines() do
 		local ok, ev = pcall(vim.json.decode, line, { luanil = { object = true, array = true } })
@@ -39,7 +40,7 @@ function M.read(path)
 				})
 			elseif ev.progress then
 				if ev.progress.stderr then
-					table.insert(res.progress, ev.progress.stderr)
+					table.insert(chunks, ev.progress.stderr)
 				end
 			elseif ev.id.buildFinished and ev.finished then
 				res.exit = ev.finished.exitCode or { name = "SUCCESS", code = 0 }
@@ -47,7 +48,7 @@ function M.read(path)
 		end
 	end
 	f:close()
-	res.progress = table.concat(res.progress)
+	res.progress = table.concat(chunks)
 	return res
 end
 

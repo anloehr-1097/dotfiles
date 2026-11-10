@@ -76,6 +76,17 @@ function M.setup(opts)
 	return M.options
 end
 
+--- Quote a label or file name for use inside a `bazel query` expression. Unquoted, a name
+--- with a space, '+', ',' or a parenthesis is parsed as query syntax. Bazel's lexer has no
+--- escapes, so a name holding both quote characters cannot be expressed (returns nil).
+function M.query_word(s)
+	if not s:find('"', 1, true) then
+		return '"' .. s .. '"'
+	elseif not s:find("'", 1, true) then
+		return "'" .. s .. "'"
+	end
+end
+
 -- Full argv for a bazel command: bazel <startup> <command> <args...>
 function M.bazel(command, args)
 	local o = M.options

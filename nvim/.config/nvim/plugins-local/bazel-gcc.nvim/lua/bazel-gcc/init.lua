@@ -131,7 +131,7 @@ local function on_save(args)
 		return
 	end
 	if workspace.is_build_file(name) then
-		ws.owners = {} -- target ownership may have changed
+		build.invalidate_owners(ws) -- target ownership may have changed
 		if config.options.compdb.regenerate_on_build_change then
 			compdb.generate(ws)
 		end

@@ -36,8 +36,15 @@ function M.owners(ws, file, cb)
 		ws.owners[file] = fallback()
 		return cb(ws.owners[file])
 	end
-	local expr = ("kind(rule, same_pkg_direct_rdeps(%s))"):format(label)
+	local word = config.query_word(label)
+	if not word then
+		return cb(fallback())
+	end
+	local expr = ("kind(rule, same_pkg_direct_rdeps(%s))"):format(word)
 	local cmd = config.bazel("query", { expr, "--output=label", "--keep_going", "--ui_event_filters=-info", "--noshow_progress" })
+	-- A BUILD-file save replaces ws.owners and bumps the generation; a query that started
+	-- before that answered for the old BUILD files and must not be cached.
+	local gen = ws.owners_gen
 	local ok, spawn_err = pcall(vim.system, cmd, { cwd = ws.root, text = true }, function(res)
 		vim.schedule(function()
 			local targets = {}
@@ -55,7 +62,9 @@ function M.owners(ws, file, cb)
 			if #targets == 0 then
 				targets = fallback()
 			end
-			ws.owners[file] = targets
+			if ws.owners_gen == gen then
+				ws.owners[file] = targets
+			end
 			cb(targets)
 		end)
 	end)
@@ -63,6 +72,12 @@ function M.owners(ws, file, cb)
 		notify(("cannot run %s: %s"):format(cmd[1], spawn_err), vim.log.levels.ERROR)
 		cb(fallback())
 	end
+end
+
+--- Forget which targets own which files (a BUILD file changed).
+function M.invalidate_owners(ws)
+	ws.owners = {}
+	ws.owners_gen = (ws.owners_gen or 0) + 1
 end
 
 local function set_to_list(set)
@@ -81,7 +96,13 @@ local function finish(ws, res, bep_path, targets, t0)
 	for key, diags in pairs(update.actions) do
 		store.set_action(ws, key, diags)
 	end
-	store.set_bazel(ws, update.bazel)
+	-- bazel's own messages are re-reported by every build that gets as far as analysis. A
+	-- build that never reached BuildFinished (failed to start, killed by an interrupt) says
+	-- nothing about them, so keep what we had instead of wiping the BUILD diagnostics.
+	local incomplete = events.exit == nil and res.code ~= 0
+	if not incomplete then
+		store.set_bazel(ws, update.bazel)
+	end
 	store.save(ws)
 	store.publish(ws)
 
@@ -106,7 +127,7 @@ local function finish(ws, res, bep_path, targets, t0)
 		ws.last.ok and "OK" or "FAILED", table.concat(targets, " "), errors, warnings, update.ran, ws.last.seconds)
 	if n == "always" or (n == "failures" and not ws.last.ok) then
 		local msg = summary
-		if not ws.last.ok and errors == 0 then
+		if not ws.last.ok and (errors == 0 or incomplete) then
 			msg = msg .. " (see :BazelGcc log)"
 		end
 		notify(msg, ws.last.ok and vim.log.levels.INFO or vim.log.levels.WARN)
