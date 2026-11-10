@@ -2,7 +2,8 @@ return {
     "coder/claudecode.nvim",
     dependencies = { "folke/snacks.nvim" },
     opts = {
-        terminal_cmd = "/opt/homebrew/bin/claude", -- Point to local installation
+        -- Use whichever claude is on PATH (Homebrew on macOS, ~/.local/bin on Linux).
+        terminal_cmd = vim.fn.exepath("claude") ~= "" and vim.fn.exepath("claude") or "/opt/homebrew/bin/claude",
     },
     config = true,
     -- Also copy the `cmd = { ... }` list from the Installation section above so the
